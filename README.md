@@ -6,6 +6,8 @@ Custom-developed AI agent skills for [OpenClaw](https://openclaw.ai), built and 
 
 | Skill | Status | Description |
 |-------|--------|-------------|
+| **project-planner** | ✅ Active | Story-first, persona-driven planning with role-based user stories → behavior tests → UI design |
+| **project-implementation** | ✅ Active | Implementation & testing workflow: Phase 0 infra, test gates, agent dispatch, QA process |
 | **project-quoter** | ✅ Active | Requirements decomposition → phased effort estimation → budgeting → client HTML proposal generation |
 | **market-research-agent** | ✅ Active | Structured market research on industry, competitors, trends, and customer segments |
 | **path-resolution-issues** | 📝 Notes | Diagnostic notes on skill path resolution |
