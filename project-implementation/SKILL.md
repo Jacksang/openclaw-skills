@@ -341,3 +341,56 @@ export async function cleanupDb(): Promise<void> {
 | Hardcoding DB credentials | Breaks across environments |
 | No cleanup in test files | Cross-contamination, false failures |
 | Migration SQL without IF NOT EXISTS | Can't re-run, breaks CI |
+
+---
+
+## UAT Phase (Post-Implementation)
+
+After all phases pass integration tests, run User Acceptance Testing before handover.
+
+### UAT Test Case Generation
+
+**DO NOT write all UAT cases in a single call.** Generate them epic by epic (E01→E02→E03→...). Each epic is a separate tester agent task. This:
+- Prevents timeout (large files take too long for a single agent)
+- Allows incremental review and correction
+- Keeps each call focused on one domain
+
+```
+Spawning order:
+  1. UAT epic E01 (Auth & Platform) — 1 agent call
+  2. UAT epic E02 (Sessions) — 1 agent call
+  3. UAT epic E03 (Imaging) — 1 agent call
+  4. UAT epic E04 (Reports) — 1 agent call
+  5. UAT epic E05 (Commerce) — 1 agent call
+  6. UAT epic E06 (Referrals) — 1 agent call
+  7. UAT epic E07 (System) — 1 agent call
+  8. Cross-role E2E workflows + UI compliance matrix — 1 agent call
+```
+
+### UAT Test Case Validation
+
+After all epic cases are assembled, spawn a **validation agent** on a premium model (e.g., `gpt5.5`) to validate:
+
+| Criteria | What It Checks |
+|----------|---------------|
+| **Validity** | Traceable to user stories, testable, unambiguous |
+| **Completeness** | All roles, epics, pages, edge cases, viewports |
+| **Accuracy** | API shapes, HTTP codes, routes, field names correct |
+| **Practicability** | Concrete steps, clear setup, reasonable duration |
+
+**Pass threshold:** All 4 categories ≥ 4/5. If any fails:
+1. Validation report lists specific gaps with line numbers
+2. Tester agent fixes the gaps
+3. Re-validate until all categories pass
+
+### UAT Execution
+
+Two rounds:
+- **Round 1:** AI agent checks backend smoke tests, frontend rendering, emojis, links
+- **Round 2:** Human tester manually executes UAT scripts in browser
+
+UAT pass criteria:
+a) UI matches design specs (layout, colors, typography)
+b) No emojis, all images visible and properly sized
+c) End-to-end flows smooth, responsive, clear feedback
+d) Every clickable element responsive, missing content visible
