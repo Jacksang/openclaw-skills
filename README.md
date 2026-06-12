@@ -11,6 +11,7 @@ Custom-developed AI agent skills for [OpenClaw](https://openclaw.ai), built and 
 | **project-implementation** | ✅ Active | Implementation & testing workflow: Phase 0 infra, test gates, agent dispatch, QA process |
 | **project-quoter** | ✅ Active | Requirements decomposition → phased effort estimation → budgeting → client HTML proposal generation |
 | **market-research-agent** | ✅ Active | Structured market research on industry, competitors, trends, and customer segments |
+| **tdd-workflow** | ✅ Active | Test-driven development: generate tests first, stub, then implement to pass all tests |
 | **path-resolution-issues** | 📝 Notes | Diagnostic notes on skill path resolution |
 
 ## Installation
