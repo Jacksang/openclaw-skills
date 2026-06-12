@@ -1,14 +1,33 @@
+---
+name: project-implementation
+description: "Implementation & testing workflow: Phase 0 test infrastructure, phased feature coding with worker agent dispatch, unit test validation, integration test gates, and bug fix cycles. Use when starting to build a planned software project, implementing features from user stories, or coordinating coding and tester agents after planning and quoting are complete."
+allowed-tools: read,write,edit,exec
+user-invocable: true
+---
+
 # Implementation & Testing Workflow
 
 A battle-tested workflow for taking a project from planning (user stories, test plans, UI designs) through implementation with integrated testing at every phase.
 
-## When to Use
+## Position in Skill Chain
 
-After the planning phase is complete and you have:
-- User stories with acceptance criteria
-- Behavior test plans (per-epic, per-role)
-- UI design documents
-- Architecture decisions (tech stack, schema, API design)
+```
+project-planner → project-quoter → ⏸️ CUSTOMER DECISION → project-implementation → project-uat → project-delivery
+```
+
+## Entry Gate (Verify Before Starting)
+
+- [ ] **Signed proposal exists** (quoter decision gate). Never start implementation without it — confirm with the user if uncertain.
+- [ ] User stories with acceptance criteria (`plan/E0X-[role]-stories.md`)
+- [ ] Behavior test plans (`tests/E0X-[role]-tests.md`)
+- [ ] UI design documents (`uidesign/*.md`) and customer design approval (`plan/DESIGN_APPROVAL.md`)
+- [ ] Architecture decisions (`plan/ARCHITECTURE.md` — tech stack, schema, API conventions, security requirements, NFR targets)
+
+If any input is missing, run the upstream skill first.
+
+**Risk tracking:** copy the risk items from the quoter's module plans into `plan/RISKS.md` (risk, probability, impact, mitigation, status). Review it at every phase gate — risks that were priced must be actively managed, not forgotten.
+
+**Stack note:** templates in this skill assume Node.js/TypeScript (`npm`, `node:test`, `supertest`). Adapt commands and libraries to whatever `plan/ARCHITECTURE.md` specifies.
 
 ## Core Principles
 
@@ -17,6 +36,9 @@ After the planning phase is complete and you have:
 3. **Integration testing gates every phase** — tester agent runs after coding
 4. **Bugs are found and fixed in the same sprint**
 5. **One-at-a-time worker dispatch** — avoid lock contention
+6. **Only the coordinator pushes** — workers and testers commit locally; the coordinator pushes after a phase gate passes
+
+These rules encode a real retrospective — see `examples/ely2-retrospective.md` for the full story behind each one.
 
 ---
 
@@ -61,16 +83,17 @@ Phase N: Feature Phases (repeatable)
 ### 0.4 Test Plan Inventory
 - Catalog all test plan files (`tests/E0X-*.md`)
 - Map each to the phase that owns it
-- Add test tasks (T1A, T1B, etc.) to SCRUM_BOARD.md
+- Add test tasks (T1A, T1B, etc.) to `SCRUM_BOARD.md` (see template below)
 
 ### 0.5 Tester Agent Prompt
-- Create `agent-prompts/tester.md` following the tester agent template
-- Configure for `deepseek-v4-flash` model (fast, cheap)
-- Include: test methodology, bug format, report format, quality gates
+- Copy `templates/tester-agent-prompt.md` (from this skill) to the project's `agent-prompts/tester.md`
+- Replace `MODEL_NAME` with a fast/cheap model (e.g. a flash-class model) — premium models are wasted on test execution
+- It includes: test methodology, bug format, report format, quality gates
 
 ### 0.6 CI/CD Pipeline (if applicable)
 - Create GitHub Actions CI workflow (lint, typecheck, test, build)
 - Run on push to main and PR to main
+- **Verify CI actually runs** — workflows that exist but never trigger are a known failure mode
 
 ### Verification Gate
 - [ ] `npm test` runs and returns 0
@@ -97,6 +120,7 @@ Phase N: Feature Phases (repeatable)
 - **Wait for completion** before dispatching next worker
 - **Worker timeout:** 15 minutes max. If a task would take longer, split it
 - **Worker scope:** coding only. Workers do NOT rewrite unrelated services
+- Workers may follow the **tdd-workflow** skill (tests first, stub, implement) for their unit-test obligations
 
 #### Worker Prompt Template
 ```
@@ -179,6 +203,10 @@ All tests pass before phase is marked Done.
 - [ ] All critical/high severity tests pass
 - [ ] All bugs filed with clear reproduction steps
 - [ ] No blockers (critical bugs preventing next phase)
+- [ ] `plan/RISKS.md` reviewed — statuses updated, new risks added
+- [ ] Coordinator pushes the phase's commits
+- [ ] **Customer progress summary sent** — 5–10 lines: what was completed, what's next, any decisions needed
+- [ ] **At the midpoint phase:** give the customer a working demo → this triggers the midpoint payment milestone from the proposal
 
 ---
 
@@ -190,7 +218,7 @@ For each bug:
 2. Spawn fix agent with bug details and specific file scope
 3. Verify: re-run the failing integration test
 4. Mark bug resolved
-5. Commit and push
+5. Commit locally (coordinator pushes at phase gate)
 
 Repeat until all critical bugs resolved.
 ```
@@ -226,6 +254,7 @@ After fixing:
 4. **After each phase's coding is done** → spawn tester agent
 5. **Do NOT mark a phase Done** until integration tests pass
 6. **Handle bug fix cycle** before moving to next phase
+7. **Push to remote** only after the phase gate passes
 
 ### When Workers Fail
 1. First failure: check error, may be environment issue
@@ -242,7 +271,49 @@ After fixing:
 
 ---
 
+## Bug vs Change Request Triage (Canonical Definition)
+
+This taxonomy is referenced by project-uat and project-delivery — it applies from the first sprint through the warranty period. **The signed artifacts decide, not opinion:**
+
+| Category | Test | Handling |
+|----------|------|----------|
+| **Defect** | Behavior deviates from a signed artifact (story AC, behavior test, design spec, architecture convention) | Fixed free — bug cycle now, warranty after launch |
+| **Specification gap** | The artifacts are silent or ambiguous about the behavior | ≤ XS effort: fix as goodwill AND update the artifact (story/glossary/design) so it's classifiable next time. Larger: becomes a change request |
+| **New feature** | System works as specified; customer wants something different or more | Change request — always priced, never absorbed |
+
+**Change requests** go through the quoter's "Post-Signing Change Orders" process: log in `plan/CHANGE_REQUESTS.md` → mini-quote → written approval → a substantial feature becomes a **delta epic** run through the mini-pipeline (planner Stages 3–6 for that epic only → change order → new phase on this board → targeted UAT). Never re-run the whole pipeline; the epic is the unit of change.
+
+When the customer calls something a bug and the artifacts say otherwise, show them the artifact — this is exactly why the planner gets stories and designs signed off.
+
+---
+
 ## Templates
+
+### `SCRUM_BOARD.md`
+
+Lives at the project root. The coordinator owns it; update after every task state change.
+
+```markdown
+# SCRUM BOARD — [Project]
+**Sprint:** N | **Phase:** [current phase] | **Updated:** YYYY-MM-DD
+
+Status legend: ⬜ Pending · 🔵 In Progress · ✅ Done · ❌ Blocked
+
+## Coding Queue
+| ID | Task | Epic | Agent | Status | Notes |
+|----|------|------|-------|--------|-------|
+| C1A-01 | Auth endpoints | E01 | backend-coder | ⬜ | |
+
+## Testing Queue
+| ID | Task | Agent | Status |
+|----|------|-------|--------|
+| T1A | Phase 1A Integration Tests | tester | ⬜ |
+
+## Bug Queue
+| ID | Severity | Source Test | Status |
+|----|----------|-------------|--------|
+| BUG-001 | 🔴 Critical | TEST-E01-... | ⬜ |
+```
 
 ### `tests/integration/setup.ts`
 
@@ -288,20 +359,11 @@ export async function cleanupDb(): Promise<void> {
 }
 ```
 
-### SCRUM_BOARD Test Tasks
-
-```markdown
-## Testing Queue
-
-| ID | Task | Agent | Status |
-|----|------|-------|--------|
-| T1A | Phase 1A Integration Tests | tester | ⬜ Pending |
-| T1B | Phase 1B Integration Tests | tester | ⬜ Pending |
-```
-
 ---
 
 ## Bug File Format
+
+Severity scale (used everywhere — bugs, gates, reports): 🔴 Critical / 🟠 High / 🟡 Medium / 🟢 Low
 
 ```markdown
 # [BUG-XXX] Title
@@ -309,8 +371,8 @@ export async function cleanupDb(): Promise<void> {
 | Field | Value |
 |-------|-------|
 | **Status** | `[ ] New` |
-| **Severity** | 🔴 Critical / 🟡 Medium / 🟢 Low |
-| **Source Test** | `TEST-EX-ROLE-NN` |
+| **Severity** | 🔴 Critical / 🟠 High / 🟡 Medium / 🟢 Low |
+| **Source Test** | `TEST-E0X-ROLE-NN-P1` |
 | **Component** | `src/path/to/file.ts` |
 
 ## Steps to Reproduce
@@ -336,61 +398,41 @@ export async function cleanupDb(): Promise<void> {
 | Skipping Phase 0 | Tests won't run, DB won't work, blockers at the worst time |
 | Dispatching 3+ workers at once | Git lock contention, lost commits |
 | Marking phase Done without tests | Bugs accumulate, fix cost grows |
-| Workers rewriting unrelated services | Token burn, scope creep, regressions |
-| Tester on premium model | Slow and expensive — use flash |
+| Workers rewriting unrelated services | Token burn, scope creep, regressions (one agent burned 7.7M tokens this way) |
+| Tester on premium model | Slow and expensive — use a flash-class model |
 | Hardcoding DB credentials | Breaks across environments |
 | No cleanup in test files | Cross-contamination, false failures |
 | Migration SQL without IF NOT EXISTS | Can't re-run, breaks CI |
+| CI workflows created but never wired up | Tests only run manually; regressions slip through |
 
 ---
 
-## UAT Phase (Post-Implementation)
+## Exit Gate → Hand Off to project-uat
 
-After all phases pass integration tests, run User Acceptance Testing before handover.
+When ALL phases pass their integration test gates:
 
-### UAT Test Case Generation
+- [ ] All test reports published (`plan/TEST_REPORT_E0X.md`), all passing
+- [ ] All critical/high bugs resolved and verified
+- [ ] Build succeeds; application runs (backend + frontend)
+- [ ] All commits pushed
 
-**DO NOT write all UAT cases in a single call.** Generate them epic by epic (E01→E02→E03→...). Each epic is a separate tester agent task. This:
-- Prevents timeout (large files take too long for a single agent)
-- Allows incremental review and correction
-- Keeps each call focused on one domain
+### Security Gate
 
-```
-Spawning order:
-  1. UAT epic E01 (Auth & Platform) — 1 agent call
-  2. UAT epic E02 (Sessions) — 1 agent call
-  3. UAT epic E03 (Imaging) — 1 agent call
-  4. UAT epic E04 (Reports) — 1 agent call
-  5. UAT epic E05 (Commerce) — 1 agent call
-  6. UAT epic E06 (Referrals) — 1 agent call
-  7. UAT epic E07 (System) — 1 agent call
-  8. Cross-role E2E workflows + UI compliance matrix — 1 agent call
-```
+Verify against the security requirements in `plan/ARCHITECTURE.md`:
 
-### UAT Test Case Validation
+- [ ] Dependency audit clean of critical/high (`npm audit --omit=dev` or stack equivalent)
+- [ ] Secrets scan — no credentials/keys/tokens in the repo
+- [ ] **Authorization matrix tests pass**: every endpoint × every role, including cross-tenant access ("role A cannot read role B's data") — these belong in the integration suite
+- [ ] Input validation on all write endpoints; standard error envelope leaks no stack traces
+- [ ] Rate limiting on auth endpoints
 
-After all epic cases are assembled, spawn a **validation agent** on a premium model (e.g., `gpt5.5`) to validate:
+(The deeper vulnerability scan and production-config checks run later in project-delivery — this gate catches what's cheap to fix now.)
 
-| Criteria | What It Checks |
-|----------|---------------|
-| **Validity** | Traceable to user stories, testable, unambiguous |
-| **Completeness** | All roles, epics, pages, edge cases, viewports |
-| **Accuracy** | API shapes, HTTP codes, routes, field names correct |
-| **Practicability** | Concrete steps, clear setup, reasonable duration |
+### NFR Gate
 
-**Pass threshold:** All 4 categories ≥ 4/5. If any fails:
-1. Validation report lists specific gaps with line numbers
-2. Tester agent fixes the gaps
-3. Re-validate until all categories pass
+Verify the non-functional targets from `plan/ARCHITECTURE.md`:
 
-### UAT Execution
+- [ ] Load smoke test on key endpoints (a simple script with N concurrent requests is enough) — response times within the stated budget
+- [ ] No N+1 query patterns on list endpoints; pagination works at realistic data volume
 
-Two rounds:
-- **Round 1:** AI agent checks backend smoke tests, frontend rendering, emojis, links
-- **Round 2:** Human tester manually executes UAT scripts in browser
-
-UAT pass criteria:
-a) UI matches design specs (layout, colors, typography)
-b) No emojis, all images visible and properly sized
-c) End-to-end flows smooth, responsive, clear feedback
-d) Every clickable element responsive, missing content visible
+Then invoke the **project-uat** skill for user acceptance testing. Do not duplicate its process here — it owns UAT case generation, validation, execution, and sign-off.

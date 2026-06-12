@@ -27,13 +27,15 @@ The Project Quoter methodology transforms raw project requirements into a comple
 - Fixed-scope waterfall projects where client wants one single number
 - Projects where the client already has a detailed RFP with fixed budget
 
-## The 5-Stage Pipeline
+## The Document Pipeline
+
+The full stage list (0–8, including commercial inputs, estimation, pricing, and negotiation) is defined in `SKILL.md`. The document flow is:
 
 ```
-Requirements → Modular Breakdown → Master Aggregation → Project Plan HTML → Proposal HTML
+Planner inputs → Modular Breakdown → Master Aggregation → Project Plan HTML → Proposal HTML
     ↓                ↓                    ↓                     ↓                  ↓
  Draft scope.md   E01–E0N plans    MASTER_SUMMARY.md    PROJECT_PLAN.html   PROPOSAL.html
- (client review)  (engineering)    (internal summary)   (client overview)   (client signing)
+ (from planner)   (engineering)    (INTERNAL ONLY)      (client overview)   (client signing)
 ```
 
 ### Stage Transitions
@@ -119,7 +121,7 @@ After delivering draft HTML to client:
 2. Fix the specific HTML file; do NOT regenerate from scratch (would lose prior fixes)
 3. Increment version number
 4. Verify fix with client screenshot or description
-5. Log the iteration in daily memory
+5. Log the iteration in the project changelog
 
 ## Reference Implementation Checklist
 

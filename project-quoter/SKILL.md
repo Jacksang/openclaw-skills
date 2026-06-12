@@ -1,66 +1,99 @@
 ---
 name: project-quoter
-description: "Requirements decomposition, phased effort estimation, budgeting, and client-facing proposal/quote HTML generation for software projects."
+description: "Effort estimation, budgeting, tiered pricing, negotiation strategy, and client-facing proposal/quote HTML generation for software projects. Use when the customer needs a quote, proposal, price, or effort estimate after project planning is complete, or when preparing a Go/No-Go decision document."
 allowed-tools: read,write,edit,exec
 user-invocable: true
 ---
 
 # Project Quoter
 
-End-to-end software project requirements analysis → modular breakdown → effort estimation → pricing → client-facing proposal HTML. Reusable across any new project.
+Planner artifacts → modular technical breakdown → effort estimation → pricing → client-facing proposal HTML. Reusable across any new project.
 
 ## Position in Skill Chain
 
 ```
-market-research → project-planner → project-quoter → ⏸️ CUSTOMER DECISION → project-implementation → project-uat
+project-planner → project-quoter → ⏸️ CUSTOMER DECISION → project-implementation → project-uat → project-delivery
 ```
 
 **Critical:** Quoting happens AFTER planning but BEFORE implementation. The quote is the decision gate — it tells the customer what to expect and gives them a clear Go/No-Go choice. Never implement before the quote is signed.
 
+**This skill does not re-create planning artifacts.** User stories, behavior tests, and the draft scope are produced by `project-planner` and consumed here. The quoter adds: technical task breakdown, estimates, pricing, and client documents.
+
 ---
 
-## Core Workflow (7 Stages)
+## Templates & References
 
-1. Requirements Capture → `Draft scope.md`
-2. Modular Breakdown → E01–E0N per-module plans
+Read the matching reference file before executing each stage — these are battle-tested formats, do not improvise:
+
+| Stage | File |
+|-------|------|
+| Stage 1 (scope fallback) | `references/templates/draft-scope-template.md` |
+| Stage 2 (module plans) | `references/templates/module-plan-template.md` |
+| Stage 6 (master summary) | `references/templates/master-summary-template.md` |
+| Stage 7 (project plan HTML) | `references/templates/project-plan-html-template.md` |
+| Stage 8 (proposal HTML) | `references/templates/proposal-html-template.md` |
+| Methodology deep-dive, pitfalls | `references/methodology.md` |
+| Worked example | `references/examples/ely-reference.md` |
+| Cross-project calibration data | `references/calibration-log.md` |
+
+---
+
+## Core Workflow (8 Stages)
+
+0. Commercial Inputs → rates, currency, margins
+1. Verify Planning Inputs → planner deliverables present
+2. Modular Technical Breakdown → E01–E0N per-module plans
 3. Effort Estimation (calibrated) → per-module hours
 4. Pricing Strategy (tiered) → Good / Better / Best options
-5. Master Aggregation → `MASTER_SUMMARY.md`
-6. Project Plan HTML → `PROJECT_PLAN.html`
-7. Proposal/Quote HTML → `PROPOSAL.html`
+5. Negotiation Strategy → list/target/floor, playbook
+6. Master Aggregation → `MASTER_SUMMARY.md`
+7. Project Plan HTML → `PROJECT_PLAN.html`
+8. Proposal/Quote HTML → `PROPOSAL.html`
 
-Each stage builds on the previous. Never skip. Every output is both a client-facing asset and internal engineering artifact.
-
----
-
-## Stage 1: Requirements Capture
-
-**Goal:** Produce a categorized feature catalog the client can review.
-
-**Process:**
-- List every feature mentioned or implied; one row per capability
-- Group into 3 phases (Core MVP / Growth / Future) with commitment levels: Contracted / Conditional / Roadmap
-- For each feature, write: Business Objective, Functional Requirements, Non-Functional Requirements, Technical Implementation Notes, Acceptance Criteria, Dependencies & Risks
-- Flag KPI gates for Phase 2+ activation (e.g., ">500 active members required")
-
-**Output:** `plan/Draft scope.md`
+Each stage builds on the previous. Never skip. After each stage, present output for review (unless the user says "go ahead").
 
 ---
 
-## Stage 2: Modular Breakdown
+## Stage 0: Commercial Inputs
 
-**Goal:** One detailed plan file per module, each independently estimable and buildable.
+Before any numbers, ask the user (do not assume):
 
-**Process:**
-- Split scope into modules; each gets an `E0X` ID
-- For each module, write:
-  - User stories per persona
-  - Technical tasks with input/output JSON schemas
-  - Unit test cases per task (at least 5 per task)
-  - Behavior/integration test scenarios (10+ per module)
-  - Dependencies on other modules
-  - Risk items with buffer days
-- Estimate each task with t-shirt sizing (see Stage 3)
+- **Currency** (e.g. USD, SGD)
+- **Internal rate** — what you pay yourself/sub-agents (default $40–60/hr)
+- **Customer-facing rate** — what the market bears (default $80–150/hr)
+- **Target margin** if different from defaults below
+
+Record these at the top of `MASTER_SUMMARY.md` so every later calculation is traceable.
+
+---
+
+## Stage 1: Verify Planning Inputs
+
+**Goal:** Confirm the planner's deliverables exist before estimating.
+
+**Required inputs (from `project-planner`):**
+- `plan/Draft scope.md` — signed-off feature catalog with phases and commitment levels
+- `plan/E0X-[role]-stories.md` — user stories per epic/role
+- `tests/E0X-[role]-tests.md` — behavior test cases
+- `plan/ARCHITECTURE.md` — tech stack, data model, API conventions
+
+**If missing:** run `project-planner` first. For quote-only engagements where full planning isn't warranted, do a lightweight capture using `references/templates/draft-scope-template.md` and state in the proposal that estimates are pre-planning class (±50% confidence).
+
+**Never edit the customer's Draft scope.**
+
+---
+
+## Stage 2: Modular Technical Breakdown
+
+**Goal:** One detailed plan file per module, each independently estimable and buildable. Modules reuse the planner's epic IDs (`E0X`) — do not invent a second numbering scheme.
+
+**Process (per module, using `module-plan-template.md`):**
+- Reference (don't duplicate) the planner's user stories and behavior tests by ID
+- Add technical tasks with input/output JSON schemas, consistent with `plan/ARCHITECTURE.md`
+- Add unit test cases per task (at least 5 per task)
+- Map dependencies on other modules
+- List risk items with buffer days
+- Size each task with t-shirt sizing (see Stage 3)
 
 **Output:** `plan/E01-xxx.md` through `plan/E0N-yyy.md`
 
@@ -83,14 +116,14 @@ The old "Low ≤40h" approach had 5x variance per task. Use narrower buckets:
 
 ### 3.2 Reference-Class Forecasting
 
-For each module, find the closest completed reference module:
+For each module, find the closest completed module in `references/calibration-log.md`:
 
 ```
-"This auth module (E01) is similar to ELY2's E01 which took 85h → estimate 75–95h"
-"This sessions module (E02) is like ELY2's E02 which took 120h → estimate 100–140h"
+"This auth module (E01) is similar to [past project]'s E01 which took 85h → estimate 75–95h"
+"This sessions module (E02) is like [past project]'s E02 which took 120h → estimate 100–140h"
 ```
 
-After each project, log actual hours per module to `plan/ACTUAL_VS_ESTIMATE.md` for future calibration.
+If the calibration log is empty (first project), estimate bottom-up from t-shirt sizes and widen the confidence range.
 
 ### 3.3 Integration Tax
 
@@ -168,7 +201,7 @@ After project 3: 0.97 (overestimated by 3%)
 Running calibration: 1.07 → apply to next project
 ```
 
-Store calibration data in `plan/CALIBRATION_LOG.md` across all projects.
+Log per-project actuals to the project's `plan/ACTUAL_VS_ESTIMATE.md`, then roll them up into `references/calibration-log.md` **inside this skill's folder** — that file persists across projects; per-project folders do not. Read it at the start of every Stage 3.
 
 ---
 
@@ -184,15 +217,19 @@ Store calibration data in `plan/CALIBRATION_LOG.md` across all projects.
 
 **Use all three.** The final price should make sense from every angle.
 
+If the **market-research-agent** skill was run for this customer, use its findings for the value-based and market-benchmark levers (competitor pricing, market size, customer willingness to pay).
+
 ### 4.2 Tiered Options (Good-Better-Best)
 
 Give the customer choice. They negotiate against themselves:
 
-| Tier | Scope | Price | Margin | Target |
-|------|-------|-------|--------|--------|
-| **Basic** | 60% — core MVP only, no polish | $35K | 40% | Budget-conscious, fast-to-close |
-| **Standard** | 100% — full spec with UX | $58K | 45% | Best value, recommended |
-| **Premium** | 100% + warranty + training + 3mo support | $85K | 55% | High-touch, premium clients |
+| Tier | Scope | Margin | Target |
+|------|-------|--------|--------|
+| **Basic** | 60% — core MVP only, no polish | 40% | Budget-conscious, fast-to-close |
+| **Standard** | 100% — full spec with UX | 45% | Best value, recommended |
+| **Premium** | 100% + warranty + training + 3mo support | 55% | High-touch, premium clients |
+
+Priceable add-ons for any tier: formal penetration test (the baseline vulnerability scan is always included in delivery — the pen-test is the paid upgrade), extended support, SLA upgrades.
 
 **Psychological anchoring:** The Standard tier should be the obvious choice. Basic feels too limited. Premium feels expensive but aspirational. Standard is "just right."
 
@@ -221,7 +258,9 @@ Quote within ±20% of market median unless you have a clear differentiator.
 
 ---
 
-## Stage 4B: Negotiation Strategy (BARGAINING-READY)
+## Stage 5: Negotiation Strategy (BARGAINING-READY — INTERNAL ONLY)
+
+Everything in this stage is internal. **None of it may appear in any client-facing document.**
 
 ### 5.1 Three Prices, Not One
 
@@ -289,27 +328,28 @@ Walk away when:
 
 ---
 
-## Stage 5: Master Aggregation
+## Stage 6: Master Aggregation
 
-**Goal:** One summary file aggregating all modules with totals.
+**Goal:** One summary file aggregating all modules with totals. Use `master-summary-template.md`.
 
 **Process:**
+- Record Stage 0 commercial inputs (rates, currency)
 - Sum hours across all modules per phase, per tier
 - Calculate calendar days with parallelization assumptions
 - State critical paths
 - Provide team composition recommendations per phase
-- Estimate infrastructure monthly cost
+- Estimate infrastructure monthly cost (apply 2–3× buffer — clients always exceed naive infra estimates)
 - List risks with probability/impact/mitigation
 - Show internal pricing (cost / target / list / floor) for each tier
 - Provide quick-start build sequence
 
-**Output:** `plan/MASTER_SUMMARY.md`
+**Output:** `plan/MASTER_SUMMARY.md` — **INTERNAL document. Never send to the client or copy its margin/floor/rate data into client HTML.**
 
 ---
 
-## Stage 6: Project Plan HTML
+## Stage 7: Project Plan HTML
 
-**Goal:** Client-facing engineering overview with timeline visualization.
+**Goal:** Client-facing engineering overview with timeline visualization. Use `project-plan-html-template.md`.
 
 **Process:**
 - Generate self-contained HTML with embedded CSS
@@ -317,14 +357,15 @@ Walk away when:
 - Show the 3-tier options prominently (Good / Better / Best)
 - Module tables show: ID, name, complexity badge, dev hrs, calendar days, dependencies
 - Color-coded: Blue (Phase 1), Purple (Phase 2), Green (Phase 3)
+- **List prices only** — no internal rates, margins, target or floor prices
 
 **Output:** `plan/PROJECT_PLAN.html`
 
 ---
 
-## Stage 7: Proposal/Quote HTML
+## Stage 8: Proposal/Quote HTML
 
-**Goal:** Formal business proposal for client signature.
+**Goal:** Formal business proposal for client signature. Use `proposal-html-template.md`.
 
 **Process:**
 - Cover page with project name, version, date, confidentiality
@@ -334,13 +375,16 @@ Walk away when:
 - Expected business outcomes grid with ROI calculation
 - Commitment summary (Contracted / Conditional / Roadmap)
 - Payment milestones with percentages
-- Inclusions / exclusions table
+- Inclusions / exclusions table — list every third-party cost (domain, SSL, messaging fees) explicitly
 - **Value justification** — comparison vs. traditional dev, vs. no-code, vs. in-house
 
 **Pricing rules:**
 - Phase 1: Fixed price, binding. 50% start + 25% midpoint + 25% go-live
 - Phase 2: Conditional estimate. Triggered by KPI gates.
 - Phase 3: Not priced. Strategic direction.
+- **List prices only.** Floor/target/margins stay in `MASTER_SUMMARY.md`.
+
+**Iteration:** when the client requests changes, fix the specific HTML file in place and bump the version — never regenerate from scratch (you'd lose prior fixes).
 
 **Output:** `plan/PROPOSAL.html`
 
@@ -355,8 +399,8 @@ List Price = Cost × 1.65 (shown to customer, room to negotiate)
 Floor Price = Cost × 1.20 (walk-away point)
 
 Where:
-  Internal Rate = $40–60/hr (what YOU pay yourself/sub-agents)
-  Customer-Facing Rate = $80–150/hr (what the market bears)
+  Internal Rate = from Stage 0 (default $40–60/hr)
+  Customer-Facing Rate = from Stage 0 (default $80–150/hr)
 ```
 
 ### Margin Structure
@@ -387,10 +431,25 @@ NEVER start implementation without signed proposal.
 
 ---
 
+## Post-Signing Change Orders
+
+Scope changes after signing are inevitable. Handle them commercially, never silently:
+
+1. **Log every request** in `plan/CHANGE_REQUESTS.md` (ID `CR-NN`, description, requester, date).
+2. **Triage** using the canon in project-implementation ("Bug vs Change Request Triage"): defects are free; specification gaps ≤ XS are goodwill; everything else is billable new scope.
+3. **Mini-quote billable changes**: t-shirt size × customer-facing rate (+ QA ratio + integration impact). Apply a minimum charge (e.g. 4h) — tiny changes still cost coordination.
+4. **Written approval before work starts** — a one-paragraph change order referencing the CR ID, price, and delivery impact (calendar days added).
+5. **Delta epics**: a substantial new feature becomes a new epic run through the mini-pipeline — planner Stages 3–6 for the delta only (reusing glossary, design system, architecture) → this change order → a new implementation phase → targeted UAT.
+6. **Batching**: when several CRs accumulate, propose bundling them as a minor release — this is exactly what the Phase 2 (Conditional) structure exists for. Re-enter the chain from the planner with the delta scope.
+
+**Every discount costs scope; every scope addition costs money.** The same discipline in both directions.
+
+---
+
 ## Iterative Refinement
 
 After each project:
-1. Log actual hours to `CALIBRATION_LOG.md`
+1. Log actual hours to `plan/ACTUAL_VS_ESTIMATE.md`, roll up into `references/calibration-log.md`
 2. Update calibration factor
 3. Review which tier the customer chose (adjust defaults)
 4. Review which negotiation tactics worked
@@ -402,9 +461,9 @@ After each project:
 ## Skill Execution
 
 When invoked for a new project:
-1. Gather requirements from conversation context
-2. Create project directory at `~/projects/<project>/plan/`
-3. Execute Stages 1–7 sequentially
+1. Run Stage 0 (commercial inputs) and Stage 1 (verify planner deliverables)
+2. Work in the project directory (default `~/projects/<project>/plan/`, or the current workspace)
+3. Execute Stages 2–8 sequentially, reading the matching reference template before each output stage
 4. After each stage, present output for review (unless user says "go ahead")
 5. Final output: `PROPOSAL.html` with 3 tiers and negotiation-ready pricing
 
@@ -414,11 +473,13 @@ When invoked for a new project:
 
 | Antipattern | Fix |
 |-------------|-----|
+| Re-creating user stories/tests the planner already made | Reference planner artifacts by ID; quoter adds tasks + estimates only |
 | Quoting after implementation | Quote is the decision gate — do it between plan and code |
 | Single price with no tiers | Always offer 3: Good/Better/Best |
 | Cost-plus only, no value justification | Show ROI: "this costs $58K but saves/generates $50K/year" |
 | Discounting without scope reduction | Every discount costs a feature |
 | Revealing floor price | List price is what you show. Floor is what you know. |
+| Internal pricing in client HTML | MASTER_SUMMARY is internal; client docs show List prices only |
 | "Low ≤40h" estimation | Use XS/S/M/L/XL/XXL with narrow ranges |
 | Hiding contingency in task estimates | Show unknown-unknowns as explicit line item |
-| No calibration feedback loop | Log actuals, adjust estimates for next project |
+| No calibration feedback loop | Log actuals to the skill's calibration-log.md, adjust next project |

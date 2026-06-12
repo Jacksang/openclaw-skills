@@ -1,46 +1,67 @@
 ---
 name: project-planner
-description: "Plan software projects from draft scope → role-based user stories → behavior tests → UI/UX design. Story-first, persona-driven, zero-code planning phase."
+description: "Plan software projects from draft scope → role-based user stories → behavior tests → UI/UX design → architecture outline. Story-first, persona-driven, zero-code planning phase. Use when starting a new software project, planning from a scope document, or when the user asks for user stories, behavior tests, or UI/UX planning before implementation."
 allowed-tools: read,write,edit,exec,image_generate
 user-invocable: true
 ---
 
 # Project Planner
 
-End-to-end project planning methodology. Start from a customer's draft scope and produce validated user stories, test cases, UI/UX designs, and visual mockups — all before writing a single line of code.
+End-to-end project planning methodology. Start from a customer's draft scope and produce validated user stories, test cases, UI/UX designs, an architecture outline, and visual mockups — all before writing a single line of code.
 
 ## Philosophy
 
 **Story-first, persona-driven, epic-by-epic.** Every feature is examined from every role's perspective before implementation begins. No code until the plan is complete. Work one epic at a time through all stages — this keeps context tight, reduces token waste, and ensures deep focus on each epic before moving to the next.
 
+## Position in Skill Chain
+
+```
+project-planner → project-quoter → ⏸️ CUSTOMER DECISION → project-implementation → project-uat → project-delivery
+```
+
+The planner owns requirements capture and all planning artifacts. The quoter consumes them to estimate and price. Implementation consumes stories, tests, UI designs, and the architecture outline.
+
 ## The Workflow: Epic-by-Epic, Stage-by-Stage
 
 ```
-GLOBAL (once):    Stage 1 (Draft Scope) → Stage 2 (Roles)
+GLOBAL (once):    Stage 1 (Draft Scope) → Stage 2 (Roles) → ⏸️ user confirms
 
 PER EPIC (loop):  Stage 3 (Stories) → Stage 4 (Tests) → Stage 5 (UI/UX)
                          ↓
-                  Stage 7 (Validate) → FIX → RE-VALIDATE → PASS ✓
+                  Stage 6 (Validate) → FIX → RE-VALIDATE → PASS ✓
                          ↓
                   Next epic
 
-GLOBAL (after):   Stage 6 (Images) — generate priority mockups from validated designs
+GLOBAL (after):   Stage 7 (Architecture) → Stage 8 (Images) → ⏸️ Stage 9 (Design Approval)
 ```
 
 **Why epic-by-epic:**
 - Context stays tight: one epic's files at a time, not 20+ files across all epics
-- Validation is deeper: agent reads 4-10 files per epic, not 40+
+- Validation is deeper: validator reads 4-10 files per epic, not 40+
 - Lessons compound: E01 fixes inform E02's stories before they're even validated
 - Token efficient: no re-reading all files per validation run — ~80% less context waste
-- Proven on ELY2: batch approach needed 3 rounds per epic; epic-first would need 1-2
+
+## Project Layout & Progress Tracking
+
+All artifacts live under the project root (default `~/projects/<project>/`, or the current workspace if invoked inside one):
+
+```
+plan/        Draft scope.md, GLOSSARY.md, STATUS.md, E0X-[role]-stories.md, ARCHITECTURE.md
+tests/       E0X-[role]-tests.md
+uidesign/    DESIGN_SYSTEM.md, COMPONENTS_SHARED.md, INDEX.md, PAGE_*.md, assets/
+```
+
+**Resumability:** Maintain `plan/STATUS.md` — a table of epics × stages (Stories / Tests / UI / Validated) updated after every completed step. When this skill is invoked, read `plan/STATUS.md` first and resume from where the last session stopped.
 
 ## Stages 1-2: Global (Run Once)
 
 ### Stage 1: Draft Scope
 
-**Input:** Customer provides `plan/Draft scope.md` — a feature catalog with business objectives, functional requirements, acceptance criteria.
+**Goal:** A feature catalog with business objectives, functional requirements, acceptance criteria, grouped into epics.
 
-**Action:** Read and understand. Do not edit the draft scope. It belongs to the customer.
+**Process:**
+- If `plan/Draft scope.md` exists (provided by the customer): read and understand it. **Never edit it — it belongs to the customer.**
+- If it does not exist: elicit requirements from the customer/conversation, draft `plan/Draft scope.md`, and get customer sign-off before proceeding. Once signed off, treat it as read-only.
 
 **Output:** Confirmed understanding of all epics, phases, and features.
 
@@ -56,7 +77,9 @@ GLOBAL (after):   Stage 6 (Images) — generate priority mockups from validated 
 
 **Output:** Clear role list with evidence from draft scope.
 
-## Stages 3-7: Per-Epic Loop (Repeat for E01, E02, E03...)
+**⏸️ Checkpoint:** Present the role list and epic list to the user for confirmation before starting the per-epic loop. A wrong role or epic split here corrupts every downstream artifact.
+
+## Stages 3-6: Per-Epic Loop (Repeat for E01, E02, E03...)
 
 Work through each epic completely before starting the next. This means: write stories for E01 → write tests for E01 → design pages for E01 → validate E01 → fix any gaps → E01 passes. Only then start E02.
 
@@ -69,7 +92,7 @@ Work through each epic completely before starting the next. This means: write st
 **Format:**
 ```
 # E0X — User Stories: [Role]
-## US-E0X-ROLENAME-01: Story Title
+## US-E0X-ROLE-01: Story Title
 As a **[Role]**, I need to **[action]**, so that **[outcome]**.
 
 **Acceptance Criteria:**
@@ -84,6 +107,7 @@ As a **[Role]**, I need to **[action]**, so that **[outcome]**.
 - 3–7 acceptance criteria per story, concrete and testable.
 - Cover what a role CAN do (not implementation details).
 - Edge cases: "what if the system is down?", "what if data is missing?"
+- **During E01 only:** create `plan/GLOSSARY.md` defining canonical terms — especially status vocabulary (e.g. `in_progress` vs `in-progress`), entity names, and role names. All later epics, tests, and designs must use the glossary's terms. If the customer's draft scope uses different vocabulary, do not fight it — map their terms to yours in the glossary.
 
 ### Stage 4: Behavior Test Cases
 
@@ -91,11 +115,13 @@ As a **[Role]**, I need to **[action]**, so that **[outcome]**.
 
 **File naming:** `tests/E0X-[role]-tests.md`
 
+**Test ID convention:** `TEST-E0X-ROLE-NN-P#` (positive) / `TEST-E0X-ROLE-NN-N#` (negative), where `NN` matches the story number. This ID is referenced later by implementation bug reports and UAT cases — keep it exact.
+
 **Format:**
 ```
-## US-E0X-ROLENAME-01: Story Title
+## US-E0X-ROLE-01: Story Title
 ### ✅ Positive Behavior Tests
-**TEST-ID-P1: Scenario name**
+**TEST-E0X-ROLE-01-P1: Scenario name**
 | Field | Value |
 |-------|-------|
 | Scenario | [description] |
@@ -104,7 +130,7 @@ As a **[Role]**, I need to **[action]**, so that **[outcome]**.
 | Expected | • Result 1 • Result 2 |
 
 ### ❌ Negative Behavior Tests
-**TEST-ID-N1: Scenario name**
+**TEST-E0X-ROLE-01-N1: Scenario name**
 ...
 ```
 
@@ -112,7 +138,7 @@ As a **[Role]**, I need to **[action]**, so that **[outcome]**.
 - At least 1 positive + 1 negative test per story.
 - Positive: happy path, normal workflow.
 - Negative: errors, edge cases, boundary conditions, security bypasses, timeouts.
-- Tests reference exact HTTP status codes, response fields, error messages.
+- Tests reference exact HTTP status codes, response fields, error messages (these must be consistent with the API conventions later recorded in `plan/ARCHITECTURE.md`).
 - No implementation detail — test behavior, not code.
 
 ### Stage 5: UI/UX Design
@@ -120,7 +146,7 @@ As a **[Role]**, I need to **[action]**, so that **[outcome]**.
 **Goal:** Create design system spec and text-based wireframes covering every UI-visible story.
 
 **Process:**
-1. Create `uidesign/DESIGN_SYSTEM.md` — colors, typography, components, spacing, accessibility.
+1. Create `uidesign/DESIGN_SYSTEM.md` — colors, typography, components, spacing, accessibility. Include the hard rule: **no emojis anywhere in the UI** (this is a UAT pass criterion; bake it in now).
 2. For each role, find the appropriate page for each story:
    - If a suitable page exists → add the story's UI to that page.
    - If no page exists → create a new page.
@@ -151,14 +177,78 @@ As a **[Role]**, I need to **[action]**, so that **[outcome]**.
 - Every state covered: normal, loading, empty, error, success.
 - Use the design system tokens consistently (colors, spacing, fonts).
 
-## Stage 6: Image Generation (After All Epics Validated)
+### Stage 6: Plan Validation (Quality Gate — Different Model)
 
-**Goal:** Generate visual mockups for customer presentation from validated page designs.
+**Goal:** Independent, adversarial review of the epic's planning artifacts using a **different, stronger LLM** before moving to the next epic. The validation model must NOT be the same as the planning model.
+
+**Why a different model:**
+- The planning model has bias — it wrote the artifacts.
+- A different model brings fresh eyes, finds gaps the planner missed.
+- Field experience: same-model validation found 3 issues; different-model staged validation found 50+.
+
+**Model rule:** planner model ≠ validator model; prefer the strongest model available for validation. If the environment cannot assign a different model to a sub-agent, spawn a **fresh-context sub-agent** with the adversarial reviewer prompt below — fresh context without the planner's reasoning removes most of the self-review bias. Self-audit by the planner in the same context is the last resort, not the preferred path.
+
+**Process:**
+1. Spawn a validation sub-agent (different model, or fresh context per the rule above).
+2. **Validate one epic at a time** — pass only the draft scope + that epic's story files + test files + UI pages.
+3. Validation criteria: validity, completeness, accuracy, practicality.
+4. Validator outputs: PASS/FAIL per criterion + specific improvement suggestions.
+5. Planner makes modifications based on feedback.
+6. Re-run validation until all criteria pass (typically 1–3 rounds).
+7. Update `plan/STATUS.md` and commit when the epic passes — each commit is a checkpoint.
+8. Milestone achieved when ALL epics pass validation.
+
+**Validation checklist per epic:**
+- Every role in draft scope has stories in the plan.
+- Every story has acceptance criteria.
+- Every story has positive + negative test cases.
+- Every UI-visible story maps to a page design.
+- Page designs include all states (normal, loading, empty, error).
+- API contract assumptions are explicit and traceable.
+- Entry points exist for every role (no orphaned personas).
+- Edge cases covered (timeouts, failures, boundary values).
+- Terminology matches `plan/GLOSSARY.md`.
+
+**Validation prompt template:**
+```
+You are a senior solution architect reviewing a project plan.
+Read the Draft scope, this epic's story files, test files, and page designs.
+Evaluate the epic on:
+1. VALIDITY — Are stories logically correct? Do flows make sense?
+2. COMPLETENESS — Are all roles covered? All edge cases? All states?
+3. ACCURACY — Do page designs match story requirements? API assumptions correct?
+4. PRACTICALITY — Can these be implemented? Any obvious blockers?
+
+For each criterion, output PASS or FAIL with specific suggestions.
+```
+
+## Stages 7-8: Global (After All Epics Validated)
+
+### Stage 7: Architecture Outline
+
+**Goal:** Record the technical decisions that implementation needs as input — still zero code, but not zero decisions.
+
+**Output:** `plan/ARCHITECTURE.md` containing:
+- Tech stack (runtime, framework, database, frontend approach) with one-line rationale each
+- Data model sketch: entities, key fields, relationships (text/ASCII ER diagram)
+- API conventions: base path, auth scheme, error envelope shape, status code usage — must be consistent with what Stage 4 tests assume
+- **Security requirements**: auth/session policy (token type, expiry, refresh), secrets management approach, rate-limiting strategy, input validation strategy, PII/data-protection obligations (e.g. GDPR/PDPA if applicable). These are verified later at implementation's security gate and delivery's vulnerability scan.
+- Non-functional targets: expected load, response-time budget for key endpoints (verified at implementation's exit gate)
+- Deployment target and environment assumptions
+- Cross-cutting concerns: logging, migrations strategy, file storage
+
+**Rules:**
+- Decisions here must trace back to stories/tests — no speculative infrastructure.
+- This file is the handoff contract for `project-implementation` (which expects tech stack, schema, and API design as prerequisites).
+
+### Stage 8: Image Generation
+
+**Goal:** Generate visual mockups for customer presentation from validated page designs. Run only after ALL epics validated — avoids regenerating mockups for designs that later change.
 
 **Process:**
 1. Create `uidesign/assets/` folder.
-2. Generate priority pages first (login, admin dashboard, therapist session, patient dashboard).
-3. Use `image_generate` with OpenAI model, 1536×1024 size.
+2. Generate priority pages first (login, dashboards, core workflow pages).
+3. Use the available image-generation tool (e.g. `image_generate` in OpenClaw, image generation in Cursor). Landscape format, e.g. 1536×1024.
 4. Each image prompt must include: exact colors, layout description, component positions, brand name.
 5. Save each image to assets folder with descriptive filename.
 6. Create `uidesign/assets/README.md` inventory.
@@ -173,76 +263,53 @@ Clean minimal design, [font] font, no emojis.
 Professional [industry] feel.
 ```
 
-## Reference Implementation
+### Stage 9: Design Approval (Customer Checkpoint)
 
-Canonical example: `~/projects/ely2/` — ELY Wellness Platform v2
-- 7 epics → 5 roles → 68 user stories → 141 test cases → 16 pages → 7 mockups
-- Full traceability from Draft scope to visual mockup
-
-### ELY2 Lessons (Baked into This Skill)
-
-1. **Epic-by-epic beats batch**: Batching all 7 epics through each stage caused context overload. The validation agent had to read 40+ files per run, missed issues, and needed 3 rounds per epic. Epic-by-epic keeps files-per-run to 4-10.
-2. **Different model for validation**: Planner model missed 3 issues; validation model found 50+. Model diversity is critical.
-3. **Validate before images**: Don't generate mockups until designs are validated — avoids regenerating fixed designs.
-4. **Draft scope is read-only**: The customer's document has its own vocabulary (e.g., "in-progress"). Don't fight it — document your convention in story files and tests.
-5. **Status vocab centralize early**: E02 burned 3 rounds just on `in_progress` vs `in-progress`. Define canonical terms in the first epic's stories and carry them forward.
-
-### Stage 7: Plan Validation (Quality Gate — Different Model)
-
-**Goal:** Independent, adversarial review of all planning artifacts using a **different, stronger LLM** before implementation begins. The validation model must NOT be the same as the planning/execution model.
-
-**Why a different model:**
-- The planning model has bias — it wrote the artifacts.
-- A different model brings fresh eyes, finds gaps the planner missed.
-- The ELY2 experience proved this: the same-model validation found 3 issues; a different-model staged validation found 50+ issues.
-
-**Model pairing (recommended):**
-- Planning: `openai/gpt-5.5` or current best model
-- Validation: `openai/gpt-5.5` (if planning on deepseek) or `deepseek/deepseek-v4-pro` (if planning on openai)
-- Rule: **planner model ≠ validation model**
+**Goal:** The customer formally approves the design before any money is spent building it. Rework discovered at UAT is the most expensive kind — this gate prevents it.
 
 **Process:**
-1. Spawn a validation sub-agent with a different model than the planner.
-2. **Validate one epic at a time** — pass only the draft scope + that epic's story files + test files + UI pages.
-3. This controls context and allows deeper per-epic analysis.
-4. Validation criteria: validity, completeness, accuracy, practicality.
-5. Agent outputs: PASS/FAIL per criterion + specific improvement suggestions.
-6. Planner agent makes modifications based on feedback.
-7. Re-run validation until all criteria pass — E01 took 2 rounds, E02 took 3 rounds.
-8. Milestone achieved when ALL epics pass validation.
-9. **If validation agent hits model rate limits**, the planner can self-audit against the same criteria as fallback, but this is NOT the preferred path.
+1. Present to the customer: the mockups (`uidesign/assets/`), the design system summary, and the page inventory (`uidesign/INDEX.md`).
+2. Collect feedback; apply design changes now (cheap) rather than during implementation (expensive).
+3. Record approval in `plan/DESIGN_APPROVAL.md` — date, approver, approved artifact versions, noted exclusions.
+4. **Designs are frozen after approval.** Later design changes go through the change-request process (see project-quoter "Post-Signing Change Orders").
 
-**Validation checklist per epic:**
-- Every role in draft scope has stories in the plan.
-- Every story has acceptance criteria.
-- Every story has positive + negative test cases.
-- Every UI-visible story maps to a page design.
-- Page designs include all states (normal, loading, empty, error).
-- API contract assumptions are explicit and traceable.
-- Entry points exist for every role (no orphaned personas).
-- Edge cases covered (timeouts, failures, boundary values).
+This checkpoint can be bundled with the proposal review (project-quoter's decision gate) so the customer approves design and price together.
 
-**Validation prompt template:**
-```
-You are a senior solution architect reviewing a project plan. 
-Read the Draft scope, all story files, all test files, and all page designs.
-Evaluate each epic on:
-1. VALIDITY — Are stories logically correct? Do flows make sense?
-2. COMPLETENESS — Are all roles covered? All edge cases? All states?
-3. ACCURACY — Do page designs match story requirements? API assumptions correct?
-4. PRACTICALITY — Can these be implemented? Any obvious blockers?
+## Deliverables Contract (Handoff to Downstream Skills)
 
-For each criterion, output PASS or FAIL with specific suggestions.
-```
+When this skill completes, the following must exist — `project-quoter` and `project-implementation` consume them directly:
+
+| Artifact | Path | Consumed by |
+|----------|------|-------------|
+| Draft scope (signed off) | `plan/Draft scope.md` | quoter, implementation |
+| Glossary | `plan/GLOSSARY.md` | all downstream |
+| User stories per epic/role | `plan/E0X-[role]-stories.md` | quoter, implementation, uat |
+| Behavior tests per epic/role | `tests/E0X-[role]-tests.md` | implementation, uat |
+| UI design system + pages | `uidesign/*.md` | implementation, uat |
+| Architecture outline | `plan/ARCHITECTURE.md` | quoter, implementation |
+| Visual mockups | `uidesign/assets/` | proposal, customer review |
+| Design approval record | `plan/DESIGN_APPROVAL.md` | implementation, uat |
+| Status tracker | `plan/STATUS.md` | resumed sessions |
 
 ## Execution Rules
 
-1. Never edit the customer's Draft scope.
+1. Never edit the customer's Draft scope after sign-off.
 2. Always write stories per role, not per feature.
 3. System is always a role — automated processes need stories too.
 4. Every user-visible story must map to a page or sub-component.
 5. No code during planning. This is the blueprint phase.
-6. Commit after each epic's validation pass. Each commit is a checkpoint.
+6. Commit after each epic's validation pass and update `plan/STATUS.md`. Each commit is a checkpoint.
 7. Work epic-by-epic, stage-by-stage: E01 complete before starting E02.
-8. Stage 7 (Validation) is mandatory before implementation. Use a DIFFERENT model than the planner.
+8. Stage 6 (Validation) is mandatory before implementation. Use a DIFFERENT model (or at minimum a fresh-context sub-agent) than the planner.
 9. Image generation runs after ALL epics validated — designs must be final first.
+10. Designs are frozen after Stage 9 customer approval — later design changes go through the change-request process.
+
+## Field Lessons (Baked into This Skill)
+
+From a 7-epic production project (5 roles → 68 user stories → 141 test cases → 16 pages → 7 mockups):
+
+1. **Epic-by-epic beats batch**: Batching all 7 epics through each stage caused context overload. The validator had to read 40+ files per run, missed issues, and needed 3 rounds per epic. Epic-by-epic keeps files-per-run to 4-10.
+2. **Different model for validation**: Planner model missed 3 issues; a different validation model found 50+. Model diversity is critical.
+3. **Validate before images**: Don't generate mockups until designs are validated.
+4. **Draft scope is read-only**: The customer's document has its own vocabulary. Don't fight it — map it in the glossary.
+5. **Centralize status vocab early**: One epic burned 3 validation rounds just on `in_progress` vs `in-progress`. The glossary in E01 prevents this.

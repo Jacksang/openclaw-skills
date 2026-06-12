@@ -1,6 +1,8 @@
 # Module Plan Template
 
-Each module gets its own file: `plan/E0X-module-name.md`
+Each module gets its own file: `plan/E0X-module-name.md`. Module IDs reuse the planner's epic IDs.
+
+**Note on user stories and behavior tests:** if `project-planner` artifacts exist (`plan/E0X-[role]-stories.md`, `tests/E0X-[role]-tests.md`), reference them by ID in sections 1 and 3 instead of rewriting them. Only write them inline for quote-only engagements where the planner was not run.
 
 ## Structure
 
@@ -75,9 +77,9 @@ Minimum 10 behavior test scenarios per module. Cover:
 
 ## 4. Effort Estimates
 
-| Task | Description | Complexity | Est. Dev (hrs) | Est. Test (hrs) |
-|------|-------------|------------|-----------------|-----------------|
-| T1 | {Name} | Low/Med/High | XX | XX |
+| Task | Description | Size | Est. Dev (hrs) | Est. Test (hrs) |
+|------|-------------|------|-----------------|-----------------|
+| T1 | {Name} | XS/S/M/L/XL/XXL | XX | XX |
 | T2 | ... | ... | ... | ... |
 | — | Integration testing & end-to-end | — | X | X |
 | — | **TOTAL** | — | **XXX** | **XXX** |
@@ -89,21 +91,8 @@ Minimum 10 behavior test scenarios per module. Cover:
 
 ## Estimation Rules
 
-### Complexity Classification
-| Level | Criteria | Typical Range |
-|-------|----------|---------------|
-| **Low** | CRUD endpoint, simple UI component, config change | 8–40h |
-| **Medium** | Multiple endpoints, state machine, integration with 1 external service | 40–120h |
-| **High** | Real-time processing, multi-service orchestration, ML, hardware SDK, payment gateway | 120–400h |
+Use the formulas in `project-quoter/SKILL.md` Stage 3 — they are the single source of truth:
 
-### Calendar Conversion
-```
-Calendar Days = (Dev + Test Hours) / 8h × Parallelization Factor × Risk Multiplier
-```
-- Parallelization factor: 0.5 (2 devs can work in parallel) to 1.0 (single dev, sequential)
-- Risk multiplier: 1.2 (low risk) to 1.5 (high risk — hardware SDK, external API approval)
-
-### Test Hours Ratio
-- Low complexity: ~30% of dev hours
-- Medium complexity: ~40–50% of dev hours
-- High complexity: ~50–60% of dev hours
+- **Task sizing:** t-shirt sizes XS (1–8h) / S (8–20h) / M (20–40h) / L (40–80h) / XL (80–160h) / XXL (160–400h)
+- **Test hours:** dev_hours × qa_ratio (0.3 simple / 0.4 medium / 0.5 complex, +0.1 for heavy integration surface)
+- **Calendar days:** (dev + qa) / 6h daily capacity × team_size_factor (1.0 / 0.6 / 0.45 for 1/2/3 devs) × risk_multiplier (1.15 / 1.25 / 1.4)

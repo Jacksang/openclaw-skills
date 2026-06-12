@@ -99,7 +99,7 @@ Before any sprint can be marked complete:
 
 - [ ] **API Contract Verification**: Response field names match story acceptance criteria
 - [ ] **Status Code Verification**: Correct HTTP codes for all scenarios
-- [ ] **Role-Based Access**: Test every endpoint as customer, therapist, and admin
+- [ ] **Role-Based Access**: Test every endpoint as every role defined in the plan (e.g. customer, operator, admin)
 - [ ] **Error Handling**: Every error scenario from test files is covered
 - [ ] **UI States**: Every page renders loading, empty, error, and success states
 - [ ] **Bug Triage**: All bugs filed, severity assigned, blockers flagged
@@ -124,7 +124,7 @@ Produce `plan/TEST_REPORT_E0X.md` after each sprint:
 - [ ] Integration tests pass or bugs filed for failures
 - [ ] API contracts verified against story acceptance criteria
 - [ ] All UI states verified (loading, empty, error, success)
-- [ ] Role-based access verified (customer, therapist, admin)
+- [ ] Role-based access verified for every role defined in the plan
 - [ ] Bug files created for all failures with clear reproduction steps
 - [ ] Test report published to `plan/TEST_REPORT_E0X.md`
 
