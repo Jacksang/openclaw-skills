@@ -41,12 +41,11 @@ Self-contained HTML page for client engineering review. No external dependencies
     <!-- Repeat for: Modules, Total Hours, Calendar Weeks -->
   </div>
 
-  <!-- Timeline Bar: proportional width per phase -->
-  <div class="timeline-bar">
-    <div class="timeline-p1" style="width:XX%">Phase 1 · ~X wks</div>
-    <div class="timeline-p2" style="width:XX%">Phase 2 · ~X wks</div>
-    <div class="timeline-p3" style="width:XX%">Phase 3 · ~X wks</div>
-  </div>
+  <!-- Timeline: embed PNG — do NOT use Mermaid -->
+  <img src="assets/timeline-milestones.png?v=1" alt="Project timeline and milestones" style="width:100%;max-width:900px">
+
+  <!-- Gantt: embed PNG -->
+  <img src="assets/phase-gantt.png?v=1" alt="Phase Gantt chart" style="width:100%;max-width:900px">
 
   <!-- Per-Phase Module Tables -->
   <!-- Phase badge + title + subtitle -->
@@ -54,7 +53,7 @@ Self-contained HTML page for client engineering review. No external dependencies
   <!-- Phase total row with bold totals -->
 
   <!-- Gantt Chart -->
-  <!-- Labeled horizontal bars showing module timelines -->
+  <!-- Replaced by phase-gantt.png above — regenerate PNGs when timeline changes -->
 
   <!-- Team Recommendation Table -->
   <!-- Role | Phase 1 | Phase 2 | Phase 3 headcount -->

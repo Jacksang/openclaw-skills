@@ -18,10 +18,13 @@ Aggregates all module plans into one summary. Copy to `plan/MASTER_SUMMARY.md`.
 
 ### Phase 1 — MVP Core (Contracted)
 
-| Module | Description | Dev (hrs) | Test (hrs) | Calendar Days |
+| Module | Description | Work (h) | AI wall-clock (h) | Calendar Wks |
 |---|---|---|---|---|
 | E0X | {Name} | XX | XX | X |
 | **Phase 1 Subtotal** | | **XXX** | **XXX** | **XX** |
+
+> **Dual-track (internal):** Human = gate-based hours @ **$250 SGD/hr** (not dev-ratio). AI = wall-clock @ $9.50 SGD/hr. See dual-track-estimation.md gate catalog.
+> **human_ai_ratio:** ~0.03–0.15 expected. **Customer timeline:** `customer_committed_weeks` only; +20% buffer internal.
 
 > **Phase 1 Critical Path:** {description}
 > **Parallelization:** {which modules can run concurrently}
@@ -47,11 +50,13 @@ Aggregates all module plans into one summary. Copy to `plan/MASTER_SUMMARY.md`.
 
 | Metric | Value |
 |---|---|
-| **Total Dev Hours** | **XXX hrs** |
-| **Total Test Hours** | **XXX hrs** |
-| **Total Dev + Test Hours** | **XXX hrs** |
-| **Total Calendar Days (sequential)** | **XX days** |
-| **Total Calendar Weeks (with parallelization)** | **~X weeks** |
+| **Total Work Hours** | **XXX hrs** |
+| **Human Gate Hours** | **XXX hrs** @ $250 SGD |
+| **AI Wall-Clock Hours** | **XXX hrs** @ $9.50 SGD |
+| **human_ai_ratio** | **0.XX** (flag if >0.25) |
+| **Internal Cost (dual-track)** | **$XX,XXX SGD** |
+| **customer_committed_weeks** | **~X wks** (client-facing) |
+| **internal_planned_weeks** | **~X wks** (+20% buffer — INTERNAL) |
 
 ### Effort by Category
 
@@ -83,12 +88,12 @@ Aggregates all module plans into one summary. Copy to `plan/MASTER_SUMMARY.md`.
 
 ---
 
-## 5. Infrastructure Cost Estimate (Monthly)
+## 5. Infrastructure Cost Estimate
 
-| Service | Est. Monthly Cost (USD) |
+| Environment | Est. Cost |
 |---|---|
-| {Service name} | $X – $Y |
-| **Total Monthly Cloud** | **$XX – $YY** |
+| **Local Docker (dev/demo/UAT/delivery)** | **$0 – minimal** (customer hardware only) |
+| **Cloud (optional Phase B — AWS etc.)** | **$XX – $YY SGD/month** (only after local sign-off + customer cloud approval) |
 
 Add a buffer: if the bare minimum is $20–40, state "$20–40 depending on usage" not "$5–15".
 
@@ -109,12 +114,13 @@ Add a buffer: if the bare minimum is $20–40, state "$20–40 depending on usag
 - [x] `plan/E02-yyy.md`
 - ...
 - [x] `plan/MASTER_SUMMARY.md`
+- [x] `plan/assets/timeline-milestones.png` (+ workflow, gantt — regenerate on timeline change)
 ```
 
 ## Aggregation Rules
 
-- **Sum dev/test hours** directly from each module plan. No re-estimating at summary level.
-- **Calendar days** factor in parallelization: if two 8-day modules can run in parallel, they count as 8 days, not 16.
+- **AI hours** from module plans; **human hours** from gate catalog (not module ratio); cost at $250 human / $9.50 AI SGD
+- **customer_committed_weeks** for client; **internal_planned_weeks** = base × 1.20 (never share)
 - **Critical path** is the longest chain of dependent modules that cannot be parallelized.
 - **Risk factors** are collected from module-level risks plus cross-cutting concerns (team availability, external approvals).
 - **Infrastructure costs** must be honest and include buffer. Underquoting infra cost erodes trust.

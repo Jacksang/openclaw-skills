@@ -237,7 +237,10 @@ For each criterion, output PASS or FAIL with specific suggestions.
 - API conventions: base path, auth scheme, error envelope shape, status code usage — must be consistent with what Stage 4 tests assume
 - **Security requirements**: auth/session policy (token type, expiry, refresh), secrets management approach, rate-limiting strategy, input validation strategy, PII/data-protection obligations (e.g. GDPR/PDPA if applicable). These are verified later at implementation's security gate and delivery's vulnerability scan.
 - Non-functional targets: expected load, response-time budget for key endpoints (verified at implementation's exit gate)
-- Deployment target and environment assumptions
+- **Environment strategy (local-first):**
+  - **Development & staging:** Docker Compose (or equivalent) on Ubuntu/Linux/macOS — app, database, cache, and reverse proxy as containers. One command to start (`docker compose up`). No AWS or complex cloud required for day-to-day build, test, or customer demo.
+  - **Production:** cloud target (e.g. AWS) documented here for later **project-delivery** Stage B — only after local delivery is approved. Do not design dev/staging around AWS services unless a story explicitly requires it.
+  - Document: `docker-compose.yml` outline, required env vars, ports, volume mounts, and how local DB migrations run
 - Cross-cutting concerns: logging, migrations strategy, file storage
 
 **Rules:**

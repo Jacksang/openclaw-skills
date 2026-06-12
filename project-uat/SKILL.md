@@ -20,6 +20,7 @@ project-planner → project-quoter → ⏸️ CUSTOMER DECISION → project-impl
 - [ ] All integration test reports published (`plan/TEST_REPORT_E0X.md`), all passing
 - [ ] All critical/high bugs resolved and verified
 - [ ] Build succeeds; application runs (backend + frontend)
+- [ ] **Local Docker stack up** — `docker compose up` from project-implementation Phase 0.1 (`docker-compose.yml`, `docs/LOCAL_SETUP.md`). UAT runs against this local environment, not cloud/AWS
 - [ ] User stories with acceptance criteria (`plan/E0X-[role]-stories.md`)
 - [ ] UI design specifications (`uidesign/PAGE_*.md`)
 
@@ -130,7 +131,7 @@ Stop after 3 rounds — escalate to human.
 
 ## 4. Automated Execution (AI Round 1)
 
-Spawn a UAT executor on a fast model:
+Spawn a UAT executor on a fast model. **Target the local Docker stack** (e.g. `http://localhost:PORT` per `docs/LOCAL_SETUP.md`) — same environment integration tests used.
 
 ### Can Verify
 - API endpoints exist and return correct shapes
@@ -191,7 +192,7 @@ If UI spec references missing images: use the available image-generation tool to
 
 AI cannot replace human eyes for visual design. Before handing over:
 
-- [ ] Environment running and reachable by the tester
+- [ ] Local Docker stack running (`docker compose up`) and reachable — ports/URLs match `docs/LOCAL_SETUP.md`
 - [ ] UAT files organized by epic-role
 - [ ] Test data seeded
 - [ ] Sign-off sheets ready
@@ -221,7 +222,7 @@ Then the human tester executes the UAT scripts in a real browser, checking each 
 - [ ] All Round 2 bugs resolved and re-tested
 - [ ] Customer acceptance recorded in `plan/UAT_SIGNOFF.md` (date, signatory, outstanding items if any)
 
-UAT sign-off means the build is accepted — it is not yet live. Invoke the **project-delivery** skill for deployment, security verification, handover, training, warranty, and the final payment milestone. Project close (calibration logging, retrospective) happens there, at the true end of the project.
+UAT sign-off means the build is accepted on the **local Docker environment** — it is not yet handed over or live in cloud. Invoke **project-delivery** for the local delivery package (Part A), then optional cloud go-live (Part B) after customer approval.
 
 ---
 

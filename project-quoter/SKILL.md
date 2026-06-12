@@ -35,6 +35,7 @@ Read the matching reference file before executing each stage — these are battl
 | Methodology deep-dive, pitfalls | `references/methodology.md` |
 | Worked example | `references/examples/ely-reference.md` |
 | Cross-project calibration data | `references/calibration-log.md` |
+| Dual-track human + AI estimation, timeline rules | `references/dual-track-estimation.md` |
 
 ---
 
@@ -56,14 +57,16 @@ Each stage builds on the previous. Never skip. After each stage, present output 
 
 ## Stage 0: Commercial Inputs
 
-Before any numbers, ask the user (do not assume):
+Defaults below apply unless the user overrides. Record final values at the top of `MASTER_SUMMARY.md`.
 
-- **Currency** (e.g. USD, SGD)
-- **Internal rate** — what you pay yourself/sub-agents (default $40–60/hr)
-- **Customer-facing rate** — what the market bears (default $80–150/hr)
-- **Target margin** if different from defaults below
+| Input | Default |
+|-------|---------|
+| **Currency** | **SGD** |
+| **Human rate** | **$250 SGD/hr** — review gates, customer sessions, escalation only (not implementation hours) |
+| **AI agent rate** | **$9.50 SGD/hr** (= $7 USD/hr) — wall-clock AI agent hours (bulk of delivery) |
+| **Target margin** | Per tier table in Pricing Formula (Standard 45%) |
 
-Record these at the top of `MASTER_SUMMARY.md` so every later calculation is traceable.
+Also confirm: customer-facing positioning (show accelerated timeline; hide cost split — see dual-track doc).
 
 ---
 
@@ -99,11 +102,13 @@ Record these at the top of `MASTER_SUMMARY.md` so every later calculation is tra
 
 ---
 
-## Stage 3: Effort Estimation (CALIBRATED)
+## Stage 3: Effort Estimation (DUAL-TRACK — CALIBRATED)
 
-### 3.1 T-Shirt Sizing with Narrow Ranges
+**Read `references/dual-track-estimation.md` before estimating.** Every module gets a human/AI split — not a single blended hour count.
 
-The old "Low ≤40h" approach had 5x variance per task. Use narrower buckets:
+### 3.1 T-Shirt Sizing → Module Work Hours
+
+Size each task; sum to `module_work_h` (total work at small-model AI baseline: gpt-5.3 / sonnet-4.5 / qwen3.6-35B-a3b class):
 
 | Size | Hours | Typical Tasks |
 |------|-------|---------------|
@@ -114,7 +119,23 @@ The old "Low ≤40h" approach had 5x variance per task. Use narrower buckets:
 | **XL** | 80–160h | Major subsystem, multi-module orchestration |
 | **XXL** | 160–400h | Platform-level feature, real-time, ML |
 
-### 3.2 Reference-Class Forecasting
+### 3.2 Dual-Track Split (Per Module + Project Gates)
+
+**AI track (per module):**
+```
+ai_work_h       = module_work_h × ai_executable_share     (45–80% — see dual-track doc)
+ai_wall_clock_h = ai_work_h × 1.5
+```
+
+**Human track (NOT a ratio of module_work):** agents run automatically; humans act only at skill-defined gates. Build `human_gate_h` bottom-up from the gate catalog in `dual-track-estimation.md` (plan confirmation, validation review, design approval, phase gates, midpoint demo, UAT Round 2, delivery sign-off, etc.). Add a small integration-debug reserve only for high-risk modules.
+
+```
+human_ai_ratio = human_total_h / ai_wall_clock_total   ← expect ~0.03–0.15; flag if >0.25
+```
+
+Per-module table: `work_h`, `ai_wall_clock_h` only. Human gates roll up once at project level in `MASTER_SUMMARY.md`. **Customer never sees this split.**
+
+### 3.3 Reference-Class Forecasting
 
 For each module, find the closest completed module in `references/calibration-log.md`:
 
@@ -125,7 +146,7 @@ For each module, find the closest completed module in `references/calibration-lo
 
 If the calibration log is empty (first project), estimate bottom-up from t-shirt sizes and widen the confidence range.
 
-### 3.3 Integration Tax
+### 3.4 Integration Tax
 
 Multi-module projects have cross-cutting overhead:
 
@@ -138,7 +159,7 @@ Multi-module projects have cross-cutting overhead:
 
 This covers: shared auth flows, cross-module API contracts, database migrations that span schemas, end-to-end test setup, and deployment orchestration.
 
-### 3.4 Phase 0 Costs (Explicit Line Item)
+### 3.5 Phase 0 Costs (Explicit Line Item)
 
 These are REAL work, not padding:
 
@@ -150,7 +171,7 @@ These are REAL work, not padding:
 | Dev environment documentation | 2–4h |
 | **Total Phase 0** | **14–26h** |
 
-### 3.5 QA Hour Calculation
+### 3.6 QA Hour Calculation
 
 ```
 Per-module QA = dev_hours × qa_ratio × complexity_multiplier
@@ -164,17 +185,22 @@ Example: Auth module (85h dev, medium complexity):
   QA = 85 × 0.4 = 34h
 ```
 
-### 3.6 Calendar Days
+### 3.7 Calendar Weeks (Internal vs Customer)
+
+Use dual-track doc formulas:
 
 ```
-Calendar days = (dev + qa) / daily_capacity × team_size_factor × risk_multiplier
-
-daily_capacity = 6 (productive hours per person per day)
-team_size_factor = 1.0 (1 dev) / 0.6 (2 devs) / 0.45 (3 devs)
-risk_multiplier = 1.15 (low risk) / 1.25 (medium) / 1.4 (high — unknown tech, tight deadline)
+internal_base_weeks     = AI-accelerated schedule from human + AI wall-clock tracks
+internal_planned_weeks  = internal_base_weeks × 1.20    ← INTERNAL ONLY; never show customer
+customer_committed_weeks = round(internal_base_weeks)     ← what proposal displays
+traditional_weeks       = all-human equivalent (optional comparison copy: "vs ~X weeks traditional")
 ```
 
-### 3.7 Unknown-Unknowns (Explicit Line)
+**Hybrid customer presentation:** show accelerated `customer_committed_weeks` and optional traditional comparison. **Never disclose the 20% buffer** or human/AI hour splits in client HTML.
+
+**Regenerate all timeline PNGs** (see Stage 7) whenever calendar weeks change.
+
+### 3.8 Unknown-Unknowns (Explicit Line)
 
 Never hide contingency in per-task estimates. Show it as a line item:
 
@@ -187,7 +213,7 @@ Unknown-unknowns (10%):  75h
 Total estimate:         827h (range: 660–990h at 90% confidence)
 ```
 
-### 3.8 Historical Calibration
+### 3.9 Historical Calibration
 
 After each project, calculate the error ratio:
 
@@ -258,73 +284,11 @@ Quote within ±20% of market median unless you have a clear differentiator.
 
 ---
 
-## Stage 5: Negotiation Strategy (BARGAINING-READY — INTERNAL ONLY)
+## Stage 5: Negotiation Strategy (INTERNAL ONLY)
 
-Everything in this stage is internal. **None of it may appear in any client-facing document.**
+Everything here stays in `MASTER_SUMMARY.md` — never in client HTML. Three prices: **List** (shown), **Target** (want), **Floor** (walk-away). Every discount costs scope. Full playbook: `references/methodology.md` § Negotiation.
 
-### 5.1 Three Prices, Not One
-
-Every proposal has three prices internally:
-
-| Price | Purpose | Calculation |
-|-------|---------|-------------|
-| **List Price** | What the proposal shows | Cost × 1.5–2.0 (room to negotiate) |
-| **Target Price** | What you actually want | Cost × 1.35–1.5 (healthy margin) |
-| **Floor Price** | Walk-away point | Cost × 1.2 (absolute minimum margin) |
-
-**Never reveal your floor.** Never go below floor.
-
-### 5.2 Bargaining Playbook
-
-**When customer says "too expensive":**
-
-| Tactic | Response |
-|--------|----------|
-| "Can you do better?" | "I can offer $X if we reduce scope [trade feature Y for discount]" |
-| "X quoted me less" | "Let me show you what they're likely missing [integration, testing, warranty]" |
-| "My budget is only $X" | "Let's look at the Basic tier — core MVP within your budget" |
-| "Can you do $X cash?" | "Payment terms affect price. 50% upfront = 5% discount" |
-| Silence after quote | Don't drop price unsolicited. Wait for their counter. |
-
-### 5.3 Scope Trade-Offs (Never Discount Without Taking Something)
-
-```
-Customer: "Can you do $45K instead of $58K?"
-
-WRONG: "OK, $45K." (you just lost $13K margin for nothing)
-
-RIGHT: "At $45K, we'd scope to the Basic tier — core MVP without
-        admin dashboard, without referral system, without imaging.
-        Or keep full scope at $55K with 3% early-signing discount."
-```
-
-**Every discount costs scope.** This trains customers to value features, not just negotiate price.
-
-### 5.4 Negotiation Margin by Phase
-
-| Phase | List Price Margin | Why |
-|-------|-------------------|-----|
-| Phase 1 (Contracted) | +25% above target | Most bargaining happens here |
-| Phase 2 (Conditional) | +15% above target | Less negotiation since it's "future" |
-| Phase 3 (Roadmap) | Not priced | Strategic direction only |
-
-### 5.5 Payment Terms as Negotiation Tool
-
-| Offer | Discount | Win For Us |
-|-------|----------|------------|
-| 50% upfront | 5% off | Cash flow, commitment |
-| Full upfront | 10% off | Zero risk, locked in |
-| Monthly retainer (12mo) | 15% off | Recurring revenue, long-term relationship |
-
-### 5.6 Walk-Away Rules
-
-Walk away when:
-- Customer demands >20% off list price without scope reduction
-- Customer refuses to sign any contract
-- Customer's budget is < floor price for even the Basic tier
-- Customer shows red flags (unreasonable demands, scope creep early, payment delays)
-
-**A bad deal is worse than no deal.**
+Walk away if: >20% off without scope cut, no contract, budget below floor, red flags.
 
 ---
 
@@ -333,32 +297,56 @@ Walk away when:
 **Goal:** One summary file aggregating all modules with totals. Use `master-summary-template.md`.
 
 **Process:**
-- Record Stage 0 commercial inputs (rates, currency)
-- Sum hours across all modules per phase, per tier
-- Calculate calendar days with parallelization assumptions
+- Record Stage 0 commercial inputs (rates, currency — default SGD)
+- Sum **dual-track hours** per module (human / AI wall-clock) — see dual-track doc
+- Add section **"Dual-Track Effort (Internal — Do Not Share)"** — gate-based human hours @ $250 / AI wall-clock @ $9.50, plus `human_ai_ratio`
+- Record `internal_base_weeks`, `internal_planned_weeks (+20% buffer)`, `customer_committed_weeks`
+- Sum hours across modules per phase, per tier
 - State critical paths
 - Provide team composition recommendations per phase
-- Estimate infrastructure monthly cost (apply 2–3× buffer — clients always exceed naive infra estimates)
+- Estimate infrastructure: **local Docker = $0–minimal** for dev/demo; **cloud monthly** (AWS etc.) as Phase B optional cost with 2–3× buffer
 - List risks with probability/impact/mitigation
-- Show internal pricing (cost / target / list / floor) for each tier
+- Show internal pricing (cost / target / list / floor) for each tier in **SGD**
 - Provide quick-start build sequence
+- **Generate illustration PNGs** to `plan/assets/` (timeline, workflow, gantt) — see Stage 7; embed paths here for traceability
 
 **Output:** `plan/MASTER_SUMMARY.md` — **INTERNAL document. Never send to the client or copy its margin/floor/rate data into client HTML.**
 
 ---
 
-## Stage 7: Project Plan HTML
+## Stage 7: Project Plan HTML + Timeline Illustrations
 
-**Goal:** Client-facing engineering overview with timeline visualization. Use `project-plan-html-template.md`.
+**Goal:** Client-facing engineering overview. Use `project-plan-html-template.md`.
 
-**Process:**
+### 7.1 Generate Illustration PNGs (Before HTML)
+
+**Do not use Mermaid** — syntax errors break client documents.
+
+Use the image-generation tool. Save to `plan/assets/`:
+
+| PNG | Purpose |
+|-----|---------|
+| `timeline-milestones.png` | Phase timeline, week markers, payment milestones (50% / 25% / 25%) |
+| `workflow-execution.png` | End-to-end delivery flow including local-first delivery |
+| `phase-gantt.png` | Module bars on week axis |
+
+Prompt: clean professional infographic, project brand colors if known, landscape 1536×1024, no emojis, no third-party logos.
+
+**Regeneration rule:** whenever scope, module estimates, or `customer_committed_weeks` changes → regenerate **all three PNGs** and bump `?v=N` in HTML img tags. Never leave stale diagrams in client docs.
+
+Inventory in `plan/assets/README.md`.
+
+### 7.2 Build HTML
+
 - Generate self-contained HTML with embedded CSS
-- Include: summary cards, timeline bar, module tables, team composition
-- Show the 3-tier options prominently (Good / Better / Best)
-- Module tables show: ID, name, complexity badge, dev hrs, calendar days, dependencies
-- Color-coded: Blue (Phase 1), Purple (Phase 2), Green (Phase 3)
-- **List prices only** — no internal rates, margins, target or floor prices
-- **Clean of third-party content**: fully self-contained (no external scripts, fonts-by-CDN trackers, or analytics), no ads, no promotional links, no branding except yours and the customer's
+- Embed PNGs: `<img src="assets/timeline-milestones.png?v=1" alt="Project timeline">`
+- Include: summary cards, module tables, team composition
+- Show **customer_committed_weeks** (AI-accelerated); optional "vs traditional ~X weeks" — **never** mention internal buffer or hourly splits
+- Show 3-tier options (Good / Better / Best) with prices in **SGD**
+- Module tables: ID, name, complexity badge, calendar weeks, dependencies (dev/test hour columns optional — prefer weeks for client view)
+- Color-coded phases: Blue (P1), Purple (P2), Green (P3)
+- **List prices only** — no internal rates, margins, floor, human/AI breakdown
+- **Clean of third-party content**: self-contained, no CDN trackers
 
 **Output:** `plan/PROJECT_PLAN.html`
 
@@ -371,8 +359,9 @@ Walk away when:
 **Process:**
 - Cover page with project name, version, date, confidentiality
 - Executive summary with key numbers (weeks, cost, phases)
-- **Tier comparison table** — Good / Better / Best with scope and price
-- "How It Works" workflow diagram
+- **Tier comparison table** — Good / Better / Best with scope and price (**SGD**)
+- Embed `workflow-execution.png` for "How It Works" — not Mermaid
+- Embed `timeline-milestones.png` for delivery schedule
 - Expected business outcomes grid with ROI calculation
 - Commitment summary (Contracted / Conditional / Roadmap)
 - Payment milestones with percentages
@@ -385,26 +374,22 @@ Walk away when:
 - Phase 3: Not priced. Strategic direction.
 - **List prices only.** Floor/target/margins stay in `MASTER_SUMMARY.md`.
 
-**Iteration:** when the client requests changes, fix the specific HTML file in place and bump the version — never regenerate from scratch (you'd lose prior fixes).
-
-**Before delivering either HTML document**, sweep it for unrelated third-party content: ads, promotional links, "powered by" credits, template-vendor leftovers, tracking pixels, external script tags. Templates and AI-generated boilerplate are the usual carriers. A single stray ad link in a signed proposal destroys credibility.
-
-**Output:** `plan/PROPOSAL.html`
+Fix the specific HTML in place and bump version — never regenerate from scratch.
 
 ---
 
 ## Pricing Formula (Internal)
 
 ```
-Cost = Dev Hours × Internal Rate + Phase 0 + Infrastructure
-Target Price = Cost × 1.40 (40% gross margin)
-List Price = Cost × 1.65 (shown to customer, room to negotiate)
-Floor Price = Cost × 1.20 (walk-away point)
-
-Where:
-  Internal Rate = from Stage 0 (default $40–60/hr)
-  Customer-Facing Rate = from Stage 0 (default $80–150/hr)
+human_cost     = human_gate_h × $250 SGD      ← bottom-up gates, not dev-hour ratio
+ai_cost        = ai_wall_clock_h × $9.50 SGD
+internal_cost  = human_cost + ai_cost + Phase 0 + infra (local minimal; cloud optional Phase B)
+target_price   = internal_cost × target_margin (Standard 45%)
+list_price     = target_price × list_room (~1.15–1.25)
+floor_price    = internal_cost × 1.20 minimum margin
 ```
+
+Customer sees **list_price in SGD** + **customer_committed_weeks** only.
 
 ### Margin Structure
 
@@ -414,7 +399,7 @@ Where:
 | Standard | 45% | 25% |
 | Premium | 55% | 30% |
 
-Round final prices to clean numbers (nearest $1K for small projects, $5K for medium, $10K for large).
+**Output:** `plan/PROPOSAL.html`. Sweep both HTML files for third-party ads/links/trackers before sending.
 
 ---
 
@@ -487,3 +472,8 @@ When invoked for a new project:
 | "Low ≤40h" estimation | Use XS/S/M/L/XL/XXL with narrow ranges |
 | Hiding contingency in task estimates | Show unknown-unknowns as explicit line item |
 | No calibration feedback loop | Log actuals to the skill's calibration-log.md, adjust next project |
+| Mermaid diagrams in client docs | Generate PNG illustrations; regenerate on every timeline change |
+| Showing internal 20% buffer or human/AI split to customer | Hybrid mode: accelerated weeks + list price only |
+| Human hours = (1−ai_share)×module_work | Gate-based human hours only; human_ai_ratio ~3–15% |
+| Human rate at $50 for senior gate work | Human @ $250 SGD/hr for gates; AI @ $9.50 for agent wall-clock |
+| Quoting in USD by default | Default currency is SGD unless user overrides |

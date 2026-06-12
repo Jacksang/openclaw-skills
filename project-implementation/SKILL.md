@@ -59,19 +59,28 @@ Phase N: Feature Phases (repeatable)
 
 **Before any feature code is written:**
 
-### 0.1 Database Setup
-- Verify database is running and accessible
+### 0.1 Local Environment (Docker — Mandatory)
+
+Per `plan/ARCHITECTURE.md` local-first strategy:
+
+- Create `docker-compose.yml` — app, database, and supporting services
+- Add `.env.example`; document ports and volume mounts in `docs/LOCAL_SETUP.md`
+- Verify `docker compose up` starts cleanly; migrations run; health endpoint responds
+- All development, integration tests, and phase demos run against this stack — **not AWS**
+
+### 0.2 Database Setup
+- Verify database is running (via Docker Compose)
 - Set up `.env` with correct connection string and port
 - Run all migrations — verify they complete cleanly
 - Fix any migration issues (missing `IF NOT EXISTS`, wrong paths, ownership)
 
-### 0.2 Unit Test Runner
+### 0.3 Unit Test Runner
 - Install test dependencies (`jest`, `vitest`, or `node:test`)
 - Create `npm test` script that runs all `__tests__/` directories
 - Verify a smoke test passes (e.g., `1+1=2`)
 - Add `--test-concurrency=1` if tests share database state
 
-### 0.3 Integration Test Runner
+### 0.4 Integration Test Runner
 - Install supertest (or equivalent HTTP test library)
 - Create `npm run test:integration` script
 - Create `tests/integration/setup.ts` with:
@@ -80,17 +89,17 @@ Phase N: Feature Phases (repeatable)
   - Database reset helper (full cascade cleanup)
 - Verify the app starts and health endpoint responds
 
-### 0.4 Test Plan Inventory
+### 0.5 Test Plan Inventory
 - Catalog all test plan files (`tests/E0X-*.md`)
 - Map each to the phase that owns it
 - Add test tasks (T1A, T1B, etc.) to `SCRUM_BOARD.md` (see template below)
 
-### 0.5 Tester Agent Prompt
+### 0.6 Tester Agent Prompt
 - Copy `templates/tester-agent-prompt.md` (from this skill) to the project's `agent-prompts/tester.md`
 - Replace `MODEL_NAME` with a fast/cheap model (e.g. a flash-class model) — premium models are wasted on test execution
 - It includes: test methodology, bug format, report format, quality gates
 
-### 0.6 CI/CD Pipeline (if applicable)
+### 0.7 CI/CD Pipeline (if applicable)
 - Create GitHub Actions CI workflow (lint, typecheck, test, build)
 - Run on push to main and PR to main
 - **Verify CI actually runs** — workflows that exist but never trigger are a known failure mode

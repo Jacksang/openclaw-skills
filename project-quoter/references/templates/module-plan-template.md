@@ -77,9 +77,11 @@ Minimum 10 behavior test scenarios per module. Cover:
 
 ## 4. Effort Estimates
 
-| Task | Description | Size | Est. Dev (hrs) | Est. Test (hrs) |
-|------|-------------|------|-----------------|-----------------|
+| Task | Description | Size | Work (h) | AI wall-clock (h) |
+|------|-------------|------|----------|-------------------|
 | T1 | {Name} | XS/S/M/L/XL/XXL | XX | XX |
+
+Human hours are **not** per-task — roll up gate-based hours at project level in `MASTER_SUMMARY.md` (see dual-track-estimation.md).
 | T2 | ... | ... | ... | ... |
 | — | Integration testing & end-to-end | — | X | X |
 | — | **TOTAL** | — | **XXX** | **XXX** |
