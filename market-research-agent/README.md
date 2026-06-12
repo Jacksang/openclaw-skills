@@ -1,29 +1,26 @@
 # Market Research Agent
 
-Structured market research on any industry, competitor, or opportunity — using proven frameworks that VCs and strategists actually use.
+From a market domain to actionable build decisions — comprehensive domain analysis plus solution scoping that feeds directly into the project delivery pipeline.
 
 ## What It Does
 
-- **Market sizing** — TAM, SAM, SOM with clear assumptions
-- **Competitive analysis** — matrices, gap analysis, positioning maps
-- **Customer segmentation** — personas, pain points, buying criteria
-- **SWOT & Porter's Five Forces** — structured strategic analysis
-- **Go-to-market insights** — channels, pricing models, partnerships
+- **Domain analysis** — history & evolution, present state (TAM/SAM/SOM, value chain, competitors, customers, regulation), and 3–5 year trend outlook with impact/confidence ratings
+- **Opportunity discovery** — converts pain points × market gaps × trends into scored software/hardware/hybrid solution candidates
+- **Solution specification** — value proposition, target roles, software spec, hardware spec (with certification and BOM-class notes), validation risks
+- **Requirements scoping** — generates a `Draft scope.md` per solution in the exact format consumed by `project-planner` / `project-quoter`
 
 ## Example Usage
 
-> "Research the AI customer support market in 2024"
+> "Research the home elderly-care market in Southeast Asia and suggest solutions we could build"
 
-> "Compare Notion, Coda, and Airtable — competitive matrix"
+> "Analyze the history, current state, and future of the dental clinic software domain"
 
-> "Who are the customer segments for a B2B invoicing tool?"
+> "Find software + hardware opportunities in cold-chain logistics and scope the top one"
 
-> "SWOT analysis for launching a meal prep delivery service in London"
+## Output
+
+All artifacts land in `research/<domain>/`: `MARKET_ANALYSIS.md`, `OPPORTUNITIES.md`, per-solution specs, and planner-ready `Draft scope.md` files.
 
 ## Who It's For
 
-Founders validating ideas, product managers exploring new markets, consultants, investors doing due diligence, or anyone who needs structured market intelligence fast.
-
----
-
-For industry-specific context, check out our packs at https://afrexai-cto.github.io/context-packs/ — $47/vertical
+Founders validating ideas, agencies hunting for productizable niches, product managers exploring new markets — anyone who wants research that ends in a buildable, quotable scope rather than a slide deck.

@@ -45,6 +45,7 @@ Run against the production (or production-identical staging) environment. All it
 - [ ] Dependency audit clean of critical/high (`npm audit --omit=dev` or stack equivalent)
 - [ ] Secrets scan on the full repo history (e.g. gitleaks) — no credentials, keys, or tokens committed
 - [ ] Debug endpoints, verbose error output, and default credentials removed
+- [ ] **Third-party content sweep**: grep the production build, email templates, and handover docs for external URLs and embeds — no ads, promotional links, vendor "powered by" credits, template leftovers, or tracking hooks the customer didn't approve. Customer-facing surfaces carry the customer's brand only
 
 ### 2.2 Runtime Checks
 - [ ] **Authorization matrix re-run in production config**: every endpoint × every role, including cross-tenant checks ("role A cannot read role B's data")
@@ -139,6 +140,7 @@ Define in `plan/WARRANTY_TERMS.md` (and confirm it matches the proposal):
 | Skipping the vulnerability scan | Baseline scan is mandatory; pen-test is the optional add-on |
 | Backups configured but never restored | Test one restore before go-live |
 | Handover without documentation | The 4 docs in Stage 5 are deliverables, not extras |
+| Third-party ads/links/trackers shipped to production | Sweep every customer-facing surface; only customer-approved external content |
 | Warranty covering everything forever | Written terms, fixed period, triage every request |
 | Final invoice before written go-live confirmation | Confirmation first, invoice second |
 | Calibration data never logged | Stage 8 closes the loop that makes the next quote better |

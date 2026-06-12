@@ -90,6 +90,7 @@ b) No emojis in rendered UI or user-facing strings; all images visible and prope
 c) End-to-end flows are smooth, responsive, clear action feedback
 d) Every clickable element is responsive, missing content triggers visible error
 e) Accessibility basics: full keyboard navigation, visible focus states, sufficient color contrast, alt text on images
+f) No unrelated third-party content: no ads, promotional links, "Powered by" badges, vendor watermarks, tracking hooks, or template-leftover links anywhere in the UI, emails, or generated documents
 
 The UI compliance checklist must include the accessibility items from (e) and the NFR targets from `plan/ARCHITECTURE.md`.
 
@@ -137,6 +138,7 @@ Spawn a UAT executor on a fast model:
 - DOM elements exist with correct IDs/classes
 - Error responses follow standard envelope
 - No emojis in rendered UI
+- **No unrelated third-party content**: grep rendered pages, templates, and email templates for external URLs, script tags, and iframe/pixel embeds — every hit must trace to the design spec or architecture doc; flag ads, promo links, vendor credits, and tracking hooks as bugs
 - Legal pages exist
 - **With browser automation (if available):** take a screenshot of each page in each state (desktop + mobile viewport), compare against the mockups in `uidesign/assets/`, and flag gross layout/color deviations — this narrows what humans must check in Round 2
 

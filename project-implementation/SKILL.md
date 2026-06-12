@@ -425,6 +425,7 @@ Verify against the security requirements in `plan/ARCHITECTURE.md`:
 - [ ] **Authorization matrix tests pass**: every endpoint × every role, including cross-tenant access ("role A cannot read role B's data") — these belong in the integration suite
 - [ ] Input validation on all write endpoints; standard error envelope leaks no stack traces
 - [ ] Rate limiting on auth endpoints
+- [ ] **No unapproved third-party hooks**: every external script, CDN resource, analytics/tracking snippet, or outbound link in the frontend traces to `plan/ARCHITECTURE.md` or the design spec. AI-generated and template code loves to smuggle in tracking snippets, attribution comments, and promotional links — grep for external URLs and audit each one
 
 (The deeper vulnerability scan and production-config checks run later in project-delivery — this gate catches what's cheap to fix now.)
 

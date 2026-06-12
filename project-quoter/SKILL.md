@@ -358,6 +358,7 @@ Walk away when:
 - Module tables show: ID, name, complexity badge, dev hrs, calendar days, dependencies
 - Color-coded: Blue (Phase 1), Purple (Phase 2), Green (Phase 3)
 - **List prices only** — no internal rates, margins, target or floor prices
+- **Clean of third-party content**: fully self-contained (no external scripts, fonts-by-CDN trackers, or analytics), no ads, no promotional links, no branding except yours and the customer's
 
 **Output:** `plan/PROJECT_PLAN.html`
 
@@ -385,6 +386,8 @@ Walk away when:
 - **List prices only.** Floor/target/margins stay in `MASTER_SUMMARY.md`.
 
 **Iteration:** when the client requests changes, fix the specific HTML file in place and bump the version — never regenerate from scratch (you'd lose prior fixes).
+
+**Before delivering either HTML document**, sweep it for unrelated third-party content: ads, promotional links, "powered by" credits, template-vendor leftovers, tracking pixels, external script tags. Templates and AI-generated boilerplate are the usual carriers. A single stray ad link in a signed proposal destroys credibility.
 
 **Output:** `plan/PROPOSAL.html`
 
@@ -480,6 +483,7 @@ When invoked for a new project:
 | Discounting without scope reduction | Every discount costs a feature |
 | Revealing floor price | List price is what you show. Floor is what you know. |
 | Internal pricing in client HTML | MASTER_SUMMARY is internal; client docs show List prices only |
+| Third-party ads/links/branding in client docs | Sweep every client-facing file; self-contained HTML only |
 | "Low ≤40h" estimation | Use XS/S/M/L/XL/XXL with narrow ranges |
 | Hiding contingency in task estimates | Show unknown-unknowns as explicit line item |
 | No calibration feedback loop | Log actuals to the skill's calibration-log.md, adjust next project |

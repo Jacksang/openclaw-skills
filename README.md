@@ -4,14 +4,15 @@ Custom-developed AI agent skills for [OpenClaw](https://openclaw.ai), built and 
 
 ## The Project Delivery Chain
 
-Five skills form a single pipeline that takes a software project from scope to production go-live:
+Six skills form a single pipeline that takes a market domain from research to production go-live:
 
 ```
-project-planner → project-quoter → ⏸️ CUSTOMER SIGNS → project-implementation → project-uat → project-delivery
+market-research-agent → project-planner → project-quoter → ⏸️ CUSTOMER SIGNS → project-implementation → project-uat → project-delivery
 ```
 
 | Skill | Stage | Key Outputs |
 |-------|-------|-------------|
+| **market-research-agent** | Domain analysis (history/present/future trends) → scored software/hardware opportunities → solution specs → planner-ready requirement scopes. Optional entry point. | `research/<domain>/MARKET_ANALYSIS.md`, `OPPORTUNITIES.md`, `SOLUTION-S0X-*.md`, per-solution `Draft scope.md` |
 | **project-planner** | Requirements capture → role-based user stories → behavior tests → UI/UX design → architecture outline → mockups. Epic-by-epic with adversarial validation gates. | `Draft scope.md`, `E0X-*-stories.md`, `tests/E0X-*-tests.md`, `uidesign/`, `ARCHITECTURE.md`, `GLOSSARY.md`, `STATUS.md` |
 | **project-quoter** | Technical task breakdown → calibrated effort estimation → tiered pricing (Good/Better/Best) → negotiation strategy → client HTML proposal. The Go/No-Go decision gate. | `E0X-*.md` module plans, `MASTER_SUMMARY.md` (internal), `PROJECT_PLAN.html`, `PROPOSAL.html` |
 | **project-implementation** | Phase 0 test infrastructure → phased coding with one-at-a-time worker dispatch → unit test validation → integration test gates → bug fix cycles. | Working application, `SCRUM_BOARD.md`, `TEST_REPORT_E0X.md`, `bugs/` |
@@ -24,7 +25,6 @@ Each skill verifies its upstream inputs (entry gate) and produces a defined hand
 
 | Skill | Status | Description |
 |-------|--------|-------------|
-| **market-research-agent** | ✅ Active | Structured market research on industry, competitors, trends, and customer segments |
 | **tdd-workflow** | ✅ Active | Test-driven development: generate tests first, stub, then implement to pass all tests |
 | **path-resolution-issues** | 📝 Notes | Diagnostic notes on skill path resolution |
 
