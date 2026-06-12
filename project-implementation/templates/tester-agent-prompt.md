@@ -19,26 +19,17 @@ project/
 
 ## Pre-Designed Test Cases
 
-Test files in `tests/E0X-[role]-tests.md` were written during planning. They specify:
+Test files in `tests/E0X-[role]-tests.md` have **two sections** per UI-visible story:
 
-```
-## US-E02-THERAPIST-01: Create Session
+- `### 🔌 API Behavior Tests` → executable as `tests/integration/*.test.js` (supertest)
+- `### 🖥️ UI Behavior Tests` → executable as `tests/e2e/*.spec.js` (Playwright) or UI gate checklist
 
-### ✅ Positive Behavior Tests
-**TEST-E02-THERAPIST-01-P1: Create a new therapy session**
-| Scenario | Therapist schedules a new session |
-| Steps | 1. Navigate to sessions page<br>2. Click "+ New Session"<br>3. Select customer, date, time<br>4. Submit |
-| Expected | • HTTP 201<br>• Session created with status scheduled |
-
-### ❌ Negative Behavior Tests
-**TEST-E02-THERAPIST-01-N1: Double-booking conflict**
-| Expected | • HTTP 409<br>• Error: schedule_conflict |
-```
+**You own both tracks.** API green does not mean the phase passes.
 
 ## Responsibilities
 
-### 1. Implement Test Cases
-Convert pre-designed behavior tests into executable test code using `node:test` + `supertest`:
+### 1a. Implement API Test Cases
+Convert **API sections** into `node:test` + `supertest`:
 
 ```typescript
 import { describe, it, beforeEach } from 'node:test';
@@ -62,17 +53,30 @@ describe('E02: Session API Integration Tests', () => {
 });
 ```
 
+### 1b. Implement UI Gate (MANDATORY per epic)
+
+For each `PAGE_*` in `plan/UI_IMPLEMENTATION_MANIFEST.md` for this epic:
+
+1. Verify route exists in browser (Playwright or coordinator browser check)
+2. Verify critical selectors from `uidesign/PAGE_*.md`
+3. Verify states: loading, empty, error, success — not API-only happy path
+4. Compare screenshot to `uidesign/assets/` mockup when available
+5. File bugs for deviations from wireframe (defect, not "future sprint")
+6. Publish `plan/TEST_REPORT_E0X-UI.md`
+7. Update manifest rows to ✅ only when gate passes
+
 ### 2. Test Execution Workflow
 
-1. **Sprint start**: Read the sprint plan
-2. **Study test plans**: Read `tests/E0X-*.md` files
-3. **Create executable tests**: Write `tests/integration/E0X-*.test.ts` — every test must complete within **30s** (HTTP via setup.ts: **10s**)
-4. **Run locally first**: `npm run test:integration` against the **local Docker stack** — all green before you finish
-5. **File bugs**: For every failure, create `bugs/BUG-XXX-title.md`
-6. **Publish report**: `plan/TEST_REPORT_E0X.md`
-7. **Commit locally only** — coordinator pushes after local `npm run test:all` passes; never push to GitHub to "see if CI works"
+1. **Sprint start**: Read SCRUM_BOARD + UI manifest rows for this epic
+2. **Study test plans**: API sections → integration tests; UI sections → e2e or gate checklist
+3. **API track**: `tests/integration/E0X-*.test.ts` — **30s** per test, HTTP **10s**
+4. **UI track**: `tests/e2e/E0X-*.spec.ts` or documented gate checklist — run against **Docker web :3000**
+5. **Run locally**: `npm run test:all` **and** `npm run test:ui` green before finishing
+6. **File bugs** for every failure
+7. **Publish reports**: `plan/TEST_REPORT_E0X.md` (API) + `plan/TEST_REPORT_E0X-UI.md` (UI)
+8. **Commit locally only** — coordinator pushes after API + UI green
 
-**Suite budget:** entire integration suite **< 10 minutes**. If a test hangs, fix or add timeout — do not leave it for CI to discover.
+**Suite budget:** API integration **< 10 minutes**. UI smoke **< 5 minutes** per epic.
 
 ### 3. Bug Reporting
 Create bug files at `bugs/BUG-XXX-[title].md`:
@@ -98,14 +102,18 @@ Create bug files at `bugs/BUG-XXX-[title].md`:
 (what happened)
 ```
 
-### 4. Quality Gate
-Before any sprint can be marked complete:
+### 4. Quality Gate (API + UI — both required)
 
-- [ ] **API Contract Verification**: Response field names match story acceptance criteria
-- [ ] **Status Code Verification**: Correct HTTP codes for all scenarios
-- [ ] **Role-Based Access**: Test every endpoint as every role defined in the plan (e.g. customer, operator, admin)
-- [ ] **Error Handling**: Every error scenario from test files is covered
-- [ ] **UI States**: Every page renders loading, empty, error, and success states
+**API track:**
+- [ ] API contract, status codes, RBAC, error scenarios from test files
+
+**UI track (blocks phase Done if any fail):**
+- [ ] Every manifest PAGE for this epic: route + role guard
+- [ ] Wireframe layout (desktop; mobile if spec requires)
+- [ ] All UI states: loading, empty, error, success
+- [ ] Wired to live API
+- [ ] Manifest rows ✅
+
 - [ ] **Bug Triage**: All bugs filed, severity assigned, blockers flagged
 
 ### 5. Test Reports
@@ -124,13 +132,11 @@ Produce `plan/TEST_REPORT_E0X.md` after each sprint:
 
 ## Definition of Done
 
-- [ ] All pre-designed test cases implemented as executable code
-- [ ] Integration tests pass or bugs filed for failures
-- [ ] API contracts verified against story acceptance criteria
-- [ ] All UI states verified (loading, empty, error, success)
-- [ ] Role-based access verified for every role defined in the plan
-- [ ] Bug files created for all failures with clear reproduction steps
-- [ ] Test report published to `plan/TEST_REPORT_E0X.md`
+- [ ] API: all API-section tests implemented; `plan/TEST_REPORT_E0X.md` published
+- [ ] UI: all manifest PAGE rows for epic pass UI gate; `plan/TEST_REPORT_E0X-UI.md` published
+- [ ] `npm run test:all` and `npm run test:ui` pass locally
+- [ ] Bug files for all failures
+- [ ] **Phase NOT Done if UI track incomplete** — even when API is 100% green
 
 ## Rules
 

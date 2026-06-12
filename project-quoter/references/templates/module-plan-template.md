@@ -82,6 +82,8 @@ Minimum 10 behavior test scenarios per module. Cover:
 | T1 | {Name} | XS/S/M/L/XL/XXL | XX | XX |
 
 Human hours are **not** per-task — roll up gate-based hours at project level in `MASTER_SUMMARY.md` (see dual-track-estimation.md).
+
+**Frontend tasks:** For each PAGE in `plan/UI_IMPLEMENTATION_MANIFEST.md`, include a module task row (or reference `C*-UI-*` SCRUM IDs) — API-only module plans cause the UI omission gap.
 | T2 | ... | ... | ... | ... |
 | — | Integration testing & end-to-end | — | X | X |
 | — | **TOTAL** | — | **XXX** | **XXX** |

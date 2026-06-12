@@ -23,6 +23,10 @@ project-planner → project-quoter → ⏸️ CUSTOMER DECISION → project-impl
 - [ ] **Local Docker stack up** — `docker compose up` from project-implementation Phase 0.1 (`docker-compose.yml`, `docs/LOCAL_SETUP.md`). UAT runs against this local environment, not cloud/AWS
 - [ ] User stories with acceptance criteria (`plan/E0X-[role]-stories.md`)
 - [ ] UI design specifications (`uidesign/PAGE_*.md`)
+- [ ] **`plan/UI_IMPLEMENTATION_MANIFEST.md` — all contracted P1 rows ✅** (implementation UI gate passed)
+- [ ] **`plan/DESIGN_APPROVAL.md` signed** (or written customer waiver)
+
+**Hard rule:** If manifest is incomplete, **stop** — return to project-implementation for UI sprint. Do **not** generate UAT cases with "API via Postman" workarounds for missing pages.
 
 **Model rule (same as planning validation):** generate UAT cases with a fast/cheap model; validate with a strong model. Validator model ≠ generator model.
 
@@ -137,8 +141,9 @@ Spawn a UAT executor on a fast model. **Target the local Docker stack** (e.g. `h
 
 ### Can Verify
 - API endpoints exist and return correct shapes
-- Frontend HTML loads CSS/JS files
-- DOM elements exist with correct IDs/classes
+- **Every manifest PAGE route loads in browser**
+- DOM elements match wireframe critical selectors
+- Screenshot vs `uidesign/assets/` mockups (gross layout deviations = bugs)
 - Error responses follow standard envelope
 - No emojis in rendered UI
 - **No unrelated third-party content**: grep rendered pages, templates, and email templates for external URLs, script tags, and iframe/pixel embeds — every hit must trace to the design spec or architecture doc; flag ads, promo links, vendor credits, and tracking hooks as bugs

@@ -139,7 +139,10 @@ As a **[Role]**, I need to **[action]**, so that **[outcome]**.
 - At least 1 positive + 1 negative test per story.
 - Positive: happy path, normal workflow.
 - Negative: errors, edge cases, boundary conditions, security bypasses, timeouts.
-- Tests reference exact HTTP status codes, response fields, error messages (these must be consistent with the API conventions later recorded in `plan/ARCHITECTURE.md`).
+- **Split API vs UI** for UI-visible stories (mandatory):
+  - `### 🔌 API Behavior Tests` — HTTP status codes, response fields, error envelope (consistent with `plan/ARCHITECTURE.md`).
+  - `### 🖥️ UI Behavior Tests` — browser steps, visible outcomes, navigation; **no raw HTTP codes in Expected** (use user-visible results).
+- If a story has no web UI (e.g. WhatsApp-only), API section only — note "out of web scope."
 - No implementation detail — test behavior, not code.
 
 ### Stage 5: UI/UX Design
@@ -247,6 +250,18 @@ For each criterion, output PASS or FAIL with specific suggestions.
 - Decisions here must trace back to stories/tests — no speculative infrastructure.
 - This file is the handoff contract for `project-implementation` (which expects tech stack, schema, and API design as prerequisites).
 
+**Stage 7 supplement (MANDATORY): UI Implementation Manifest**
+
+Use `references/templates/UI_IMPLEMENTATION_MANIFEST-template.md`. After `plan/ARCHITECTURE.md`, generate **`plan/UI_IMPLEMENTATION_MANIFEST.md`**:
+
+- One row per contracted `PAGE_*` from `uidesign/INDEX.md` that has a wireframe (`PAGE_*.md` exists)
+- Columns: Task ID (`UI-E0X-NN`), PAGE_ID, route, wireframe path, epic(s), status (⬜), mockup path if any
+- Mark "Deferred" rows for pages without wireframes yet
+- Include shared components from `COMPONENTS_SHARED.md` if used in P1
+- Include per-PAGE UI gate checklist (copy from project-implementation skill)
+
+This manifest is what implementation imports into SCRUM_BOARD — **without it, frontend work will not be dispatched.**
+
 ### Stage 8: Image Generation
 
 **Goal:** Generate visual mockups for customer presentation from validated page designs. Run only after ALL epics validated — avoids regenerating mockups for designs that later change.
@@ -292,6 +307,7 @@ When this skill completes, the following must exist — `project-quoter` and `pr
 | User stories per epic/role | `plan/E0X-[role]-stories.md` | quoter, implementation, uat |
 | Behavior tests per epic/role | `tests/E0X-[role]-tests.md` | implementation, uat |
 | UI design system + pages | `uidesign/*.md` | implementation, uat |
+| **UI implementation manifest** | `plan/UI_IMPLEMENTATION_MANIFEST.md` | **implementation** (SCRUM_BOARD) |
 | Architecture outline | `plan/ARCHITECTURE.md` | quoter, implementation |
 | Visual mockups | `uidesign/assets/` | proposal, customer review |
 | Design approval record | `plan/DESIGN_APPROVAL.md` | implementation, uat |
@@ -318,4 +334,5 @@ From a 7-epic production project (5 roles → 68 user stories → 141 test cases
 2. **Different model for validation**: Planner model missed 3 issues; a different validation model found 50+. Model diversity is critical.
 3. **Validate before images**: Don't generate mockups until designs are validated.
 4. **Draft scope is read-only**: The customer's document has its own vocabulary. Don't fight it — map it in the glossary.
-5. **Centralize status vocab early**: One epic burned 3 validation rounds just on `in_progress` vs `in-progress`. The glossary in E01 prevents this.
+5. **Centralize status vocab early**: One epic burned 3 validation rounds just on `in-progress`. The glossary in E01 prevents this.
+6. **UI manifest before implementation**: Without `UI_IMPLEMENTATION_MANIFEST.md`, agents complete APIs and skip every PAGE — see project-implementation `PROCESS_GAP_ANALYSIS.md`.

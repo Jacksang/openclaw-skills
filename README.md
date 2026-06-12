@@ -13,10 +13,10 @@ market-research-agent → project-planner → project-quoter → ⏸️ CUSTOMER
 | Skill | Stage | Key Outputs |
 |-------|-------|-------------|
 | **market-research-agent** | Domain analysis (history/present/future trends) → scored software/hardware opportunities → solution specs → planner-ready requirement scopes. Optional entry point. | `research/<domain>/MARKET_ANALYSIS.md`, `OPPORTUNITIES.md`, `SOLUTION-S0X-*.md`, per-solution `Draft scope.md` |
-| **project-planner** | Requirements capture → stories → tests → UI/UX → **Docker local-first architecture** (AWS optional for cloud delivery). Epic-by-epic validation. | `Draft scope.md`, `E0X-*-stories.md`, `tests/`, `uidesign/`, `ARCHITECTURE.md`, `GLOSSARY.md`, `STATUS.md` |
+| **project-planner** | Stories → **API/UI split behavior tests** → UI/UX → architecture → **`UI_IMPLEMENTATION_MANIFEST.md`** (PAGE backlog). | `uidesign/`, `UI_IMPLEMENTATION_MANIFEST.md`, `ARCHITECTURE.md`, … |
 | **project-quoter** | Dual-track estimation: **gate-based human** @ $250 SGD/hr + **AI wall-clock** @ $9.50 SGD/hr → tiered pricing → PNG timelines → client proposal. | `MASTER_SUMMARY.md` (internal), `plan/assets/*.png`, `PROJECT_PLAN.html`, `PROPOSAL.html` |
-| **project-implementation** | Docker local env → Phase 0 test infra (timeouts: 10s HTTP / 30s per test) → TDD workers → integration gates → **local `test:all` green before push** → CI mirrors local. | `docker-compose.yml`, `ci-workflow.yml`, `SCRUM_BOARD.md`, `TEST_REPORT_E0X.md` |
-| **project-uat** | UAT against **local Docker stack** (from implementation) → validation → AI + human rounds → sign-off → hand off to delivery. | `tests/uat/`, `UAT_SIGNOFF.md` |
+| **project-implementation** | **Dual-track:** backend (API tests) + **frontend (manifest PAGE tasks, UI gate N.3b)** → `test:all` + `test:ui` locally before push. | `UI_IMPLEMENTATION_MANIFEST.md` on SCRUM_BOARD, `TEST_REPORT_E0X-UI.md` |
+| **project-uat** | **Blocks if UI manifest incomplete** → UAT on local Docker → validation → AI + human rounds → sign-off. | `tests/uat/`, `UAT_SIGNOFF.md` |
 | **project-delivery** | **Local Docker delivery first** → customer sign-off → optional cloud go-live after written approval. | `LOCAL_DELIVERY_RUNBOOK.md`, `LOCAL_SETUP.md`, `SECURITY_CHECKLIST.md` |
 
 Each skill verifies its upstream inputs (entry gate) and produces a defined handoff (exit gate / deliverables contract). Estimation accuracy compounds across projects via `project-quoter/references/calibration-log.md`. Mid-project scope changes follow a shared rule: defects are fixed free, new scope becomes a change order routed through a delta-epic mini-pipeline (the epic is the unit of change — never silently absorbed, never a full re-run).

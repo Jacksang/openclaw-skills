@@ -20,7 +20,8 @@ project-planner → project-quoter → ⏸️ CUSTOMER DECISION → project-impl
 - [ ] **Signed proposal exists** (quoter decision gate). Never start implementation without it — confirm with the user if uncertain.
 - [ ] User stories with acceptance criteria (`plan/E0X-[role]-stories.md`)
 - [ ] Behavior test plans (`tests/E0X-[role]-tests.md`)
-- [ ] UI design documents (`uidesign/*.md`) and customer design approval (`plan/DESIGN_APPROVAL.md`)
+- [ ] UI design documents (`uidesign/*.md`) and customer design approval (`plan/DESIGN_APPROVAL.md`) — **do not start if approval is pending unless the customer explicitly waives in writing**
+- [ ] **`plan/UI_IMPLEMENTATION_MANIFEST.md`** — one row per contracted PAGE with task IDs (from planner Stage 7; see project-planner skill)
 - [ ] Architecture decisions (`plan/ARCHITECTURE.md` — tech stack, schema, API conventions, security requirements, NFR targets)
 
 If any input is missing, run the upstream skill first.
@@ -34,12 +35,18 @@ If any input is missing, run the upstream skill first.
 1. **Test infrastructure is Phase 0** — before any feature code
 2. **Every module ships with unit tests** — no exceptions
 3. **Integration testing gates every phase** — tester agent runs after coding
-4. **Bugs are found and fixed in the same sprint**
-5. **One-at-a-time worker dispatch** — avoid lock contention
-6. **Only the coordinator pushes** — after **`npm run test:all` passes locally** on the Docker stack; never push untested commits to GitHub
-7. **Integration tests have hard timeouts** — hung tests must fail fast locally, not stall CI for minutes
+4. **UI is not optional** — every `PAGE_*` in `plan/UI_IMPLEMENTATION_MANIFEST.md` for contracted epics must be implemented per `uidesign/` before the epic is Done
+5. **Dual-track delivery** — each phase has **backend** and **frontend** tracks; both must pass their gates
+6. **Bugs are found and fixed in the same sprint**
+7. **One-at-a-time worker dispatch** — avoid lock contention
+8. **Only the coordinator pushes** — after **`npm run test:all` AND UI gate** pass locally on the Docker stack; never push untested commits to GitHub
+9. **Integration tests have hard timeouts** — hung tests must fail fast locally, not stall CI for minutes
 
-These rules encode a real retrospective — see `examples/ely2-retrospective.md` for the full story behind each one.
+These rules encode real retrospectives — see `examples/ely2-retrospective.md` (API gates) and the project's `plan/PROCESS_GAP_ANALYSIS.md` (UI traceability).
+
+### Why UI Gets Omitted Without Dual-Track Gates
+
+Planning produces `uidesign/PAGE_*.md` but behavior tests and worker prompts default to **API/supertest**. Agents complete what is **task-listed, automated, and gate-enforced**. If SCRUM_BOARD has `C2-01 Session API` but no `C2-UI-01 PAGE_020`, and phase Done = `npm run test:all`, the frontend will be skipped even though entry gates list uidesign. **Fix: manifest + frontend worker + UI gate per phase — not UAT alone.**
 
 ---
 
@@ -47,11 +54,10 @@ These rules encode a real retrospective — see `examples/ely2-retrospective.md`
 
 ```
 Phase 0: Test Infrastructure
-Phase N: Feature Phases (repeatable)
-  ├── N.1 Coding tasks (backend + frontend)
-  ├── N.2 Unit test validation
-  ├── N.3 Integration testing
-  └── N.4 Bug fix cycle
+Phase N: Feature Phases (repeatable) — DUAL TRACK
+  ├── N.1a Backend coding → N.2a Unit tests → N.3a API integration tests
+  ├── N.1b Frontend coding → N.2b UI smoke tests → N.3b UI gate (PAGE checklist)
+  └── N.4 Bug fix cycle (both tracks)
 ```
 
 ---
@@ -103,7 +109,17 @@ Per `plan/ARCHITECTURE.md` local-first strategy:
 - Replace `MODEL_NAME` with a fast/cheap model (e.g. a flash-class model) — premium models are wasted on test execution
 - It includes: test methodology, bug format, report format, quality gates
 
-### 0.7 CI/CD Pipeline (if applicable)
+### 0.8 UI Implementation Manifest → SCRUM_BOARD (MANDATORY)
+
+Import `plan/UI_IMPLEMENTATION_MANIFEST.md` into `SCRUM_BOARD.md`:
+
+- One **frontend coding task** per manifest row: `C[N]-UI-XX` → `PAGE_XXX` + wireframe path
+- One **UI test task** per epic: `T[N]-UI` → PAGE checklist + `npm run test:ui` (or Playwright smoke)
+- Do **not** start epic N backend until manifest rows for epic N are on the board
+
+If manifest is missing, run planner Stage 7 supplement (generate from `uidesign/INDEX.md`) before coding.
+
+### 0.9 CI/CD Pipeline (if applicable)
 - Copy `templates/ci-workflow.yml` (from this skill) to `.github/workflows/ci.yml`
 - Run on push to main and PR to main
 - **CI must mirror local commands** — same `npm run test:all` scripts and `--test-timeout` flags as local
@@ -117,31 +133,33 @@ Per `plan/ARCHITECTURE.md` local-first strategy:
 - [ ] `npm run build` succeeds
 - [ ] Database has all tables from migrations
 - [ ] Tester agent prompt is committed
-- [ ] SCRUM_BOARD has test tasks for all planned phases
+- [ ] SCRUM_BOARD has **API and UI** test tasks for all planned phases
+- [ ] SCRUM_BOARD has **frontend coding tasks** from UI manifest (one per PAGE)
 
 ---
 
 ## Phase N: Feature Implementation (Repeatable)
 
-### Step N.1 — Coding Tasks
+### Step N.1a — Backend Coding Tasks
 
 #### Pre-dispatch Checklist
 - [ ] Requirements clear (user story, acceptance criteria)
 - [ ] Scope bounded (files, endpoints, expected behavior)
 - [ ] Dependencies satisfied (previous phases complete)
-- [ ] Test plans prepared for this phase
+- [ ] API test plans prepared (`tests/E0X-*-tests.md` — API sections)
 
 #### Dispatch Rules
 - **One worker at a time** — never dispatch multiple workers simultaneously to the same repo
 - **Wait for completion** before dispatching next worker
 - **Worker timeout:** 15 minutes max. If a task would take longer, split it
-- **Worker scope:** coding only. Workers do NOT rewrite unrelated services
-- **TDD is the default method for coding tasks**: workers follow the **tdd-workflow** skill (behavior list from ACs → red → green → refactor). Exempt: pure UI layout/styling tasks. Because sub-agents don't inherit your context, the TDD instruction MUST be embedded in the dispatch prompt — the template below includes it; don't strip it
+- **Worker scope:** backend coding only. Workers do NOT rewrite unrelated services
+- **TDD is mandatory** for backend tasks — follow the **tdd-workflow** skill
 
-#### Worker Prompt Template
+#### Backend Worker Prompt Template
 ```
 ## TASK: [Task ID] — [Description]
 Working directory: [path]
+Track: BACKEND
 
 ### SCOPE
 - Files to create/modify: [list]
@@ -149,31 +167,56 @@ Working directory: [path]
 - Dependencies: [list]
 
 ### ACCEPTANCE CRITERIA
-(from user story)
+(from user story + tests/E0X-* API sections)
 
-### METHOD — TDD (mandatory for logic/API tasks)
-Follow the tdd-workflow skill. If it is not loadable in your context, apply this loop:
-1. Derive a behavior list from the acceptance criteria and the planned
-   behavior tests (tests/E0X-*.md) — positive, negative, boundary, error
-2. RED: write failing tests in `__tests__/[module].test.ts` + a stub;
-   verify they fail for the right reason
-3. GREEN: implement the minimum to pass (error cases → boundary → positive)
-4. REFACTOR: clean up with tests staying green; no new behavior
-
-- Name tests after the planned IDs (TEST-E0X-ROLE-NN-P1 / -N1) for traceability
-- Cover every scenario from the test plan; add edge cases the plan missed
+### METHOD — TDD (mandatory)
+1. Derive behaviors from ACs and tests/E0X-*.md API sections
+2. RED → GREEN → REFACTOR in __tests__/
+3. Name tests TEST-E0X-ROLE-NN-P1 / -N1
 
 ### RULES
 - Commit locally but DO NOT push
-- If you encounter a bug in another module, note it but don't fix it
-- Focus only on the specified scope
+- Do not implement frontend pages in this task
 ```
 
-#### Post-worker Verification
-- [ ] Check `git diff --stat` — changes within expected scope
-- [ ] Run `npm run build` — must succeed
-- [ ] Run `npm test` for the affected module — must pass
-- [ ] Review commit quality (message, atomicity)
+### Step N.1b — Frontend Coding Tasks (MANDATORY)
+
+Required for every `PAGE_*` row in `plan/UI_IMPLEMENTATION_MANIFEST.md` for this epic. Dispatch after dependent APIs exist (or parallel only if APIs already done).
+
+#### Frontend Pre-dispatch Checklist
+- [ ] PAGE_ID + route from manifest
+- [ ] Wireframe: `uidesign/PAGE_*.md` (all states)
+- [ ] `uidesign/DESIGN_SYSTEM.md` + mockup if exists
+
+#### Frontend Worker Prompt Template
+```
+## TASK: [C[N]-UI-XX] — Implement [PAGE_ID]
+Track: FRONTEND
+
+### DESIGN SOURCE (read all first)
+- Wireframe: uidesign/PAGE_XXX.md
+- Route: uidesign/INDEX.md
+- Mockup: uidesign/assets/ (if any)
+
+### SCOPE
+- Pages, components, routes, role guards
+- APIs to wire: [list]
+
+### UI DEFINITION OF DONE
+- Layout matches wireframe; all states (loading, empty, error, success)
+- Design system tokens; no emoji; no unapproved third-party scripts
+- UI smoke test added; manifest row updated when gate passes
+
+### RULES
+- No placeholder "coming soon" for contracted PAGE rows
+- Commit locally but DO NOT push
+```
+
+#### Post-worker Verification (both tracks)
+- [ ] `git diff --stat` within expected scope
+- [ ] `npm run build` succeeds
+- [ ] Backend: `npm test` for affected module
+- [ ] Frontend: `npm run test:ui` for affected PAGE(s)
 
 ---
 
@@ -224,16 +267,43 @@ All tests pass locally within reasonable time (< 10 min suite) before phase is m
 - Bugs filed with severity
 - Recommendations
 
-#### Phase Gate
+#### Phase Gate (API track)
 - [ ] Integration test report published
-- [ ] All critical/high severity tests pass
-- [ ] **`npm run test:all` passes locally** on Docker stack (unit + integration, with timeouts)
+- [ ] All critical/high severity API tests pass
+- [ ] **`npm run test:all` passes locally** on Docker stack (unit + API integration, with timeouts)
 - [ ] All bugs filed with clear reproduction steps
+
+### Step N.3b — UI Gate (MANDATORY — same phase, after N.1b)
+
+**Do not mark the phase Done until this passes.** API green + placeholder HTML is not Done.
+
+#### UI Gate Checklist (per PAGE in manifest for this epic)
+- [ ] Route exists and matches `uidesign/INDEX.md`
+- [ ] Role guard correct (customer / therapist / admin)
+- [ ] Wireframe layout implemented (desktop; mobile if spec requires)
+- [ ] States: loading, empty, error, success — not just happy path
+- [ ] Wired to live API (no hardcoded demo-only data)
+- [ ] `npm run test:ui` smoke passes for epic PAGE(s)
+- [ ] Screenshot compared to mockup where `uidesign/assets/` has one
+- [ ] Manifest rows updated to ✅ in `plan/UI_IMPLEMENTATION_MANIFEST.md`
+
+#### UI Tester Dispatch (optional sub-agent)
+```
+## TASK: T[N]-UI — Phase [N] UI Gate
+Read agent-prompts/tester.md (UI section).
+For each PAGE in manifest for epic E0N:
+1. Verify route + selectors (Playwright or browser automation)
+2. File bugs for layout/flow deviations from uidesign/PAGE_*.md
+3. Publish plan/TEST_REPORT_E0N-UI.md
+```
+
+#### Combined Phase Gate (both tracks)
+- [ ] API gate (N.3) **and** UI gate (N.3b) passed
 - [ ] No blockers (critical bugs preventing next phase)
-- [ ] `plan/RISKS.md` reviewed — statuses updated, new risks added
-- [ ] **Coordinator pushes** only after local green — then verify GitHub CI passes
-- [ ] **Customer progress summary sent** — 5–10 lines: what was completed, what's next, any decisions needed
-- [ ] **At the midpoint phase:** give the customer a working demo → this triggers the midpoint payment milestone from the proposal
+- [ ] `plan/RISKS.md` reviewed — statuses updated
+- [ ] **Coordinator pushes** only after API + UI green locally
+- [ ] **Customer progress summary sent** — include **browser demo** of new PAGE(s), not API-only
+- [ ] **At the midpoint phase:** working demo in browser → midpoint payment milestone
 
 ---
 
@@ -281,13 +351,13 @@ After fixing:
 ## Coordinator Responsibilities
 
 ### Per Sprint
-1. **Set up SCRUM_BOARD** with coding tasks AND test tasks
-2. **Verify Phase 0** is complete before any coding (including test timeouts in scripts)
+1. **Set up SCRUM_BOARD** with **backend tasks, frontend tasks (from manifest), API test tasks, UI test tasks**
+2. **Verify Phase 0** is complete before any coding (including manifest → board import)
 3. **Dispatch workers one at a time**, waiting for each to finish
-4. **After each phase's coding is done** → spawn tester agent
-5. **Do NOT mark a phase Done** until integration tests pass **locally**
+4. **Per epic:** backend coding → API integration tests → **frontend coding → UI gate** (order flexible only if APIs pre-exist)
+5. **Do NOT mark a phase Done** until **`npm run test:all` AND UI gate** pass locally
 6. **Handle bug fix cycle** before moving to next phase
-7. **Push to GitHub** only after `npm run test:all` is green locally — never push to "see if CI passes"
+7. **Push to GitHub** only after API + UI green locally — never push to "see if CI passes"
 
 ### When Workers Fail
 1. First failure: check error, may be environment issue
@@ -324,9 +394,11 @@ When the customer calls something a bug and the artifacts say otherwise, show th
 
 | File | Purpose |
 |------|---------|
-| `templates/tester-agent-prompt.md` | Tester sub-agent role |
+| `templates/tester-agent-prompt.md` | Tester sub-agent (API + UI tracks) |
 | `templates/ci-workflow.yml` | GitHub Actions CI (timeouts + `test:all`) |
-| `examples/ely2-retrospective.md` | Lessons learned |
+| `references/PROCESS_GAP_ANALYSIS.md` | Why UI gets omitted; copy to `plan/` on gap projects |
+| `examples/ely2-retrospective.md` | API gate lessons |
+| `examples/ely3-ui-gap-retrospective.md` | UI traceability gap lesson |
 
 ### `SCRUM_BOARD.md`
 
@@ -338,15 +410,21 @@ Lives at the project root. The coordinator owns it; update after every task stat
 
 Status legend: ⬜ Pending · 🔵 In Progress · ✅ Done · ❌ Blocked
 
-## Coding Queue
+## Backend Queue
 | ID | Task | Epic | Agent | Status | Notes |
 |----|------|------|-------|--------|-------|
-| C1A-01 | Auth endpoints | E01 | backend-coder | ⬜ | |
+| C1-01 | Auth API | E01 | backend | ⬜ | |
+
+## Frontend Queue (from UI_IMPLEMENTATION_MANIFEST)
+| ID | PAGE_ID | Task | Epic | Status | Notes |
+|----|---------|------|------|--------|-------|
+| C1-UI-01 | PAGE_001 | Login page | E01 | ⬜ | uidesign/PAGE_LOGIN.md |
 
 ## Testing Queue
 | ID | Task | Agent | Status |
 |----|------|-------|--------|
-| T1A | Phase 1A Integration Tests | tester | ⬜ |
+| T1 | E01 API integration | tester-api | ⬜ |
+| T1-UI | E01 UI gate | tester-ui | ⬜ |
 
 ## Bug Queue
 | ID | Severity | Source Test | Status |
@@ -396,12 +474,13 @@ export async function cleanupDb(): Promise<void> {
   "scripts": {
     "test": "node --test --test-concurrency=1 --test-timeout=15000 --require ts-node/register 'src/**/__tests__/*.test.ts'",
     "test:integration": "node --test --test-concurrency=1 --test-timeout=30000 --require ts-node/register 'tests/integration/**/*.test.ts'",
-    "test:all": "npm run test && npm run test:integration"
+    "test:ui": "playwright test tests/e2e --timeout=30000",
+    "test:all": "npm run test && npm run test:integration && npm run test:ui"
   }
 }
 ```
 
-Per-test override when needed: `it('slow upload', { timeout: 60_000 }, async () => { ... })`. Do not disable timeouts globally.
+Add Playwright (or stack equivalent) in Phase 0 for UI smoke. Per-test override when needed: `it('slow upload', { timeout: 60_000 }, async () => { ... })`. Do not disable timeouts globally.
 
 ---
 
@@ -450,16 +529,23 @@ Severity scale (used everywhere — bugs, gates, reports): 🔴 Critical / 🟠 
 | CI workflows created but never wired up | Tests only run manually; regressions slip through |
 | Pushing before local integration pass | Run `npm run test:all` locally first — CI failures waste time and block merges |
 | Integration tests without timeouts | Hung tests stall CI; use 30s per test, 10s per HTTP call, < 10 min suite budget |
+| API-only phase Done | Frontend skipped — dual-track gates exist for a reason |
+| Placeholder dashboard shell | Violates manifest; use role-specific PAGE routes |
+| UAT as substitute for UI implementation | UAT verifies; implementation must build UI first |
+| Starting without DESIGN_APPROVAL | Designs must be frozen or explicitly waived |
 
 ---
 
 ## Exit Gate → Hand Off to project-uat
 
-When ALL phases pass their integration test gates:
+When ALL phases pass **API integration AND UI gates**:
 
-- [ ] All test reports published (`plan/TEST_REPORT_E0X.md`), all passing
+- [ ] All API test reports published (`plan/TEST_REPORT_E0X.md`), all passing
+- [ ] **`plan/UI_IMPLEMENTATION_MANIFEST.md` — all contracted P1 rows ✅**
+- [ ] UI test reports published (`plan/TEST_REPORT_E0X-UI.md`) or UI gate checklists signed
 - [ ] All critical/high bugs resolved and verified
-- [ ] Build succeeds; application runs (backend + frontend)
+- [ ] Build succeeds; **every contracted PAGE route works in browser** on Docker stack
+- [ ] `npm run test:all` **and** `npm run test:ui` pass locally
 - [ ] All commits pushed
 
 ### Security Gate
