@@ -32,6 +32,10 @@ Create the test file FIRST. Cover ALL these categories:
 
 Use Node.js built-in `assert` module or a lightweight test runner. Keep tests clear and independent.
 
+**Important gotchas:**
+- `assert.throws` regex matching is **case-sensitive** — error messages with "Input" (capital I) need matching regex pattern
+- `strictEqual` does **not** coerce types — `strictEqual(0n, 0)` fails. Use matching types: BigInt literals for BigInt, Number for Number
+
 ### Phase 3: Generate Stub Implementation
 
 Create the implementation file with:
@@ -65,8 +69,20 @@ Prioritize: negative/error cases → boundary cases → positive cases.
 ## Output
 
 - `src/<methodName>.js` — final implementation
-- `src/<methodName>.test.js` — comprehensive test suite
+- `src/<methodName>.test.js` — comprehensive test suite (co-located with source)
 - Brief summary of what was implemented and tested
+
+## Test File Location
+
+**Default: co-locate tests alongside source files** (e.g., `src/method.test.js` next to `src/method.js`).
+
+Benefits:
+- Discoverability — tests live right next to the code they test
+- Safe refactoring — move the file, move the tests
+- Industry standard — Jest/Vitest/Mocha support `*.test.js` patterns natively
+- No orphaned tests — impossible to forget to move tests when code moves
+
+Exception: shared test utilities (mock factories, helpers) can live in a separate `tests/` or `test-utils/` folder.
 
 ## Notes
 
@@ -74,3 +90,4 @@ Prioritize: negative/error cases → boundary cases → positive cases.
 - If a test case seems unreasonable, note it but still pass it
 - For complex methods, consider breaking into smaller functions
 - Always use the project's existing test framework if one is already set up
+- **Type safety matters** — match types exactly in assertions (BigInt vs Number, string vs RegExp)
