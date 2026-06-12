@@ -173,7 +173,8 @@ For confirmed defects:
 
 ```
 1. Categorize: Backend or Frontend?
-2. Spawn fix agent
+2. Spawn fix agent using project-implementation's Bug Fix Agent Template
+   (regression test first, per the tdd-workflow skill)
 3. Fix + verify + commit + push
 4. Mark bug resolved
 ```

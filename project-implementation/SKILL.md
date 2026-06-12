@@ -120,7 +120,7 @@ Phase N: Feature Phases (repeatable)
 - **Wait for completion** before dispatching next worker
 - **Worker timeout:** 15 minutes max. If a task would take longer, split it
 - **Worker scope:** coding only. Workers do NOT rewrite unrelated services
-- Workers may follow the **tdd-workflow** skill (tests first, stub, implement) for their unit-test obligations
+- **TDD is the default method for coding tasks**: workers follow the **tdd-workflow** skill (behavior list from ACs → red → green → refactor). Exempt: pure UI layout/styling tasks. Because sub-agents don't inherit your context, the TDD instruction MUST be embedded in the dispatch prompt — the template below includes it; don't strip it
 
 #### Worker Prompt Template
 ```
@@ -135,11 +135,17 @@ Working directory: [path]
 ### ACCEPTANCE CRITERIA
 (from user story)
 
-### UNIT TESTS REQUIRED
-- Create `__tests__/[module].test.ts` covering:
-  - All positive scenarios
-  - All negative/error scenarios from test plan
-  - Edge cases
+### METHOD — TDD (mandatory for logic/API tasks)
+Follow the tdd-workflow skill. If it is not loadable in your context, apply this loop:
+1. Derive a behavior list from the acceptance criteria and the planned
+   behavior tests (tests/E0X-*.md) — positive, negative, boundary, error
+2. RED: write failing tests in `__tests__/[module].test.ts` + a stub;
+   verify they fail for the right reason
+3. GREEN: implement the minimum to pass (error cases → boundary → positive)
+4. REFACTOR: clean up with tests staying green; no new behavior
+
+- Name tests after the planned IDs (TEST-E0X-ROLE-NN-P1 / -N1) for traceability
+- Cover every scenario from the test plan; add edge cases the plan missed
 
 ### RULES
 - Commit locally but DO NOT push
@@ -235,12 +241,18 @@ Working directory: [path]
 ### FILES TO MODIFY
 [Specific files]
 
+### METHOD — Regression test first (per the tdd-workflow skill)
+1. If no existing test reproduces this bug, write one that FAILS on the
+   current code (red) — this proves the bug
+2. Fix the bug — minimal change, within the file scope above
+3. The regression test now passes (green)
+
 ### VERIFICATION
 After fixing:
 1. npm run build
-2. Re-run the failing test:
+2. Re-run the regression test and the originally failing test:
    [specific test command]
-3. Test must pass
+3. Both must pass; full unit suite for the module still passes
 ```
 
 ---

@@ -1,23 +1,25 @@
 # TDD Workflow
 
-Test-driven development workflow for writing methods/functions with tests first.
+Atomic red-green-refactor loop for a single unit of work — requirement first, code as the output of tests.
 
 ## What It Does
 
-- **Test generation** — Creates comprehensive test suites covering positive, negative, boundary, and error cases
-- **Stub generation** — Creates initial stub implementation that fails tests (TDD red phase)
-- **Test verification** — Confirms tests fail before implementation
-- **Green phase** — Iteratively implements code to pass all tests
-- **Final verification** — Ensures all tests pass and implementation is complete
+- **Behavior list first** — derives testable behaviors from the requirement (or from the project plan's acceptance criteria and behavior test IDs when used inside the project pipeline)
+- **Red** — comprehensive failing tests (positive, negative, boundary, error) + stub; verifies they fail for the right reason
+- **Green** — minimal implementation, iterating error → boundary → positive
+- **Refactor** — cleanup under green tests, explicitly part of the loop
+- **Per-unit guidance** — pure functions, class public methods (public interface only), API endpoints (contract + authz tests), and small requirements (decompose, bottom-up)
 
-## Who It's For
+## When to Use
 
-Developers who want to follow TDD practices — write tests first, then implement to pass them.
+New pure logic, new API endpoints, public class methods, bug fixes (regression test first), refactoring untested code, or any scoped requirement. Skip it for UI layout, throwaway spikes, and glue code.
 
 ## Usage
 
-> "Write a calculateFibonacci function using TDD"
+> "Write a calculateDiscount function using TDD"
 
-> "Create a test-driven implementation of user authentication"
+> "TDD the POST /api/v1/sessions endpoint"
 
-> "TDD approach for this sorting algorithm"
+> "Fix this bug — regression test first"
+
+Inside the project delivery pipeline, project-implementation's worker agents apply this loop per coding task.
