@@ -36,7 +36,8 @@ If any input is missing, run the upstream skill first.
 3. **Integration testing gates every phase** — tester agent runs after coding
 4. **Bugs are found and fixed in the same sprint**
 5. **One-at-a-time worker dispatch** — avoid lock contention
-6. **Only the coordinator pushes** — workers and testers commit locally; the coordinator pushes after a phase gate passes
+6. **Only the coordinator pushes** — after **`npm run test:all` passes locally** on the Docker stack; never push untested commits to GitHub
+7. **Integration tests have hard timeouts** — hung tests must fail fast locally, not stall CI for minutes
 
 These rules encode a real retrospective — see `examples/ely2-retrospective.md` for the full story behind each one.
 
@@ -82,11 +83,14 @@ Per `plan/ARCHITECTURE.md` local-first strategy:
 
 ### 0.4 Integration Test Runner
 - Install supertest (or equivalent HTTP test library)
-- Create `npm run test:integration` script
+- Create `npm run test:integration` with **timeouts enforced** (see package.json template below)
 - Create `tests/integration/setup.ts` with:
   - Supertest client pointed at the app
+  - **HTTP request timeout** on every call (default **10s** — fail fast on hung endpoints)
   - Auth helpers (`loginAs(role)`, `authApi(role)`)
   - Database reset helper (full cascade cleanup)
+- **Per-test timeout:** default **30s** via `--test-timeout=30000`; override per `it()` only when justified (e.g. large upload, max **60s**)
+- **Suite budget:** full integration suite should finish in **< 10 minutes** locally — if longer, fix hanging tests or split suites by epic
 - Verify the app starts and health endpoint responds
 
 ### 0.5 Test Plan Inventory
@@ -100,8 +104,11 @@ Per `plan/ARCHITECTURE.md` local-first strategy:
 - It includes: test methodology, bug format, report format, quality gates
 
 ### 0.7 CI/CD Pipeline (if applicable)
-- Create GitHub Actions CI workflow (lint, typecheck, test, build)
+- Copy `templates/ci-workflow.yml` (from this skill) to `.github/workflows/ci.yml`
 - Run on push to main and PR to main
+- **CI must mirror local commands** — same `npm run test:all` scripts and `--test-timeout` flags as local
+- Set **`timeout-minutes: 20`** on the job so a stuck suite does not burn runner minutes indefinitely
+- **Local-first workflow:** developers and agents run `npm run test:all` locally before push; CI confirms, it does not discover failures first
 - **Verify CI actually runs** — workflows that exist but never trigger are a known failure mode
 
 ### Verification Gate
@@ -185,6 +192,8 @@ Before integration testing, verify unit test coverage:
 
 ### Step N.3 — Integration Testing (MANDATORY GATE)
 
+**Local-first rule:** integration tests must **pass locally** (`npm run test:integration` or `npm run test:all` on Docker) before any commit is pushed to GitHub. CI is a safety net — not the first place tests run. Hung tests without timeouts will stall CI and block the team.
+
 #### Tester Agent Dispatch
 
 ```
@@ -198,13 +207,15 @@ Read your role definition in agent-prompts/tester.md.
 ### YOUR JOB
 1. Study test plans — identify all scenarios
 2. Create executable test file in tests/integration/
-3. Run against backend using setup.ts helpers
-4. File bugs for EVERY failure in bugs/BUG-XXX-title.md
-5. Publish test report in plan/TEST_REPORT_E0X.md
-6. Commit locally but DO NOT push
+3. Run against local Docker backend using setup.ts helpers
+4. Every test must have a timeout (default 30s; HTTP calls 10s via setup.ts)
+5. File bugs for EVERY failure in bugs/BUG-XXX-title.md
+6. Publish test report in plan/TEST_REPORT_E0X.md
+7. Run npm run test:integration locally — all green before finishing
+8. Commit locally but DO NOT push
 
 ### TARGET
-All tests pass before phase is marked Done.
+All tests pass locally within reasonable time (< 10 min suite) before phase is marked Done.
 ```
 
 #### Tester Report Required Fields
@@ -216,10 +227,11 @@ All tests pass before phase is marked Done.
 #### Phase Gate
 - [ ] Integration test report published
 - [ ] All critical/high severity tests pass
+- [ ] **`npm run test:all` passes locally** on Docker stack (unit + integration, with timeouts)
 - [ ] All bugs filed with clear reproduction steps
 - [ ] No blockers (critical bugs preventing next phase)
 - [ ] `plan/RISKS.md` reviewed — statuses updated, new risks added
-- [ ] Coordinator pushes the phase's commits
+- [ ] **Coordinator pushes** only after local green — then verify GitHub CI passes
 - [ ] **Customer progress summary sent** — 5–10 lines: what was completed, what's next, any decisions needed
 - [ ] **At the midpoint phase:** give the customer a working demo → this triggers the midpoint payment milestone from the proposal
 
@@ -270,12 +282,12 @@ After fixing:
 
 ### Per Sprint
 1. **Set up SCRUM_BOARD** with coding tasks AND test tasks
-2. **Verify Phase 0** is complete before any coding
+2. **Verify Phase 0** is complete before any coding (including test timeouts in scripts)
 3. **Dispatch workers one at a time**, waiting for each to finish
 4. **After each phase's coding is done** → spawn tester agent
-5. **Do NOT mark a phase Done** until integration tests pass
+5. **Do NOT mark a phase Done** until integration tests pass **locally**
 6. **Handle bug fix cycle** before moving to next phase
-7. **Push to remote** only after the phase gate passes
+7. **Push to GitHub** only after `npm run test:all` is green locally — never push to "see if CI passes"
 
 ### When Workers Fail
 1. First failure: check error, may be environment issue
@@ -309,6 +321,12 @@ When the customer calls something a bug and the artifacts say otherwise, show th
 ---
 
 ## Templates
+
+| File | Purpose |
+|------|---------|
+| `templates/tester-agent-prompt.md` | Tester sub-agent role |
+| `templates/ci-workflow.yml` | GitHub Actions CI (timeouts + `test:all`) |
+| `examples/ely2-retrospective.md` | Lessons learned |
 
 ### `SCRUM_BOARD.md`
 
@@ -344,7 +362,10 @@ import { createApp } from '../src/app';
 import { query } from '../src/platform/db';
 
 const app = createApp();
-export const api = request(app);
+
+/** Default HTTP timeout for integration calls — fail fast, don't hang CI */
+const HTTP_TIMEOUT_MS = 10_000;
+export const api = request(app).timeout(HTTP_TIMEOUT_MS);
 
 // Auth helpers
 export async function loginAs(role: string): Promise<string> {
@@ -373,12 +394,14 @@ export async function cleanupDb(): Promise<void> {
 ```json
 {
   "scripts": {
-    "test": "node --test --test-concurrency=1 --require ts-node/register 'src/**/__tests__/*.test.ts'",
-    "test:integration": "node --test --require ts-node/register 'tests/integration/**/*.test.ts'",
+    "test": "node --test --test-concurrency=1 --test-timeout=15000 --require ts-node/register 'src/**/__tests__/*.test.ts'",
+    "test:integration": "node --test --test-concurrency=1 --test-timeout=30000 --require ts-node/register 'tests/integration/**/*.test.ts'",
     "test:all": "npm run test && npm run test:integration"
   }
 }
 ```
+
+Per-test override when needed: `it('slow upload', { timeout: 60_000 }, async () => { ... })`. Do not disable timeouts globally.
 
 ---
 
@@ -425,6 +448,8 @@ Severity scale (used everywhere — bugs, gates, reports): 🔴 Critical / 🟠 
 | No cleanup in test files | Cross-contamination, false failures |
 | Migration SQL without IF NOT EXISTS | Can't re-run, breaks CI |
 | CI workflows created but never wired up | Tests only run manually; regressions slip through |
+| Pushing before local integration pass | Run `npm run test:all` locally first — CI failures waste time and block merges |
+| Integration tests without timeouts | Hung tests stall CI; use 30s per test, 10s per HTTP call, < 10 min suite budget |
 
 ---
 

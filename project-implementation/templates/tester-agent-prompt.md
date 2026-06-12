@@ -49,6 +49,7 @@ describe('E02: Session API Integration Tests', () => {
   beforeEach(async () => { await cleanupDb(); });
 
   describe('TEST-E02-THERAPIST-01-P1: Create session', () => {
+    // Default 30s per test (runner --test-timeout=30000). HTTP calls use setup.ts 10s timeout.
     it('should return 201 with valid data', async () => {
       const auth = await authApi('therapist');
       const res = await auth.post('/api/v1/sessions').send({
@@ -65,10 +66,13 @@ describe('E02: Session API Integration Tests', () => {
 
 1. **Sprint start**: Read the sprint plan
 2. **Study test plans**: Read `tests/E0X-*.md` files
-3. **Create executable tests**: Write `tests/integration/E0X-*.test.ts`
-4. **Run tests**: `npm run test:integration`
+3. **Create executable tests**: Write `tests/integration/E0X-*.test.ts` — every test must complete within **30s** (HTTP via setup.ts: **10s**)
+4. **Run locally first**: `npm run test:integration` against the **local Docker stack** — all green before you finish
 5. **File bugs**: For every failure, create `bugs/BUG-XXX-title.md`
 6. **Publish report**: `plan/TEST_REPORT_E0X.md`
+7. **Commit locally only** — coordinator pushes after local `npm run test:all` passes; never push to GitHub to "see if CI works"
+
+**Suite budget:** entire integration suite **< 10 minutes**. If a test hangs, fix or add timeout — do not leave it for CI to discover.
 
 ### 3. Bug Reporting
 Create bug files at `bugs/BUG-XXX-[title].md`:
@@ -133,5 +137,7 @@ Produce `plan/TEST_REPORT_E0X.md` after each sprint:
 1. Source of truth = user story acceptance criteria, not the code
 2. File a bug for every deviation — specific field, value, expectation
 3. Test files go in `tests/integration/` (separate from unit tests)
-4. Use the setup.ts helpers: `api`, `loginAs()`, `authApi()`, `cleanupDb()`
-5. Report results to coordinator immediately after test execution
+4. Use the setup.ts helpers: `api`, `loginAs()`, `authApi()`, `cleanupDb()` — `api` has a 10s HTTP timeout
+5. **Always run tests locally and pass before commit** — CI is not your first test run
+6. **Never disable timeouts** — hung tests block GitHub Actions and waste runner minutes
+7. Report results to coordinator immediately after test execution

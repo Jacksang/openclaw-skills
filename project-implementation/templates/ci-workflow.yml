@@ -1,0 +1,62 @@
+# GitHub Actions CI — copy to .github/workflows/ci.yml
+# Mirrors local commands: Docker stack + npm run test:all with same timeouts as package.json
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Fail the job if it runs too long — prevents hung integration suites burning minutes
+timeout-minutes: 20
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d app_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://app:app@localhost:5432/app_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Typecheck
+        run: npm run typecheck --if-present
+
+      - name: Run migrations
+        run: npm run migrate --if-present
+
+      - name: Unit + integration tests (with timeouts)
+        run: npm run test:all
+
+      - name: Build
+        run: npm run build

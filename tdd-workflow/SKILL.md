@@ -94,7 +94,9 @@ Unit test, co-located: `src/foo.js` + `src/foo.test.js`. No mocks needed — if 
 
 ### API Endpoint
 
-Integration-style test in `tests/integration/` (matching project-implementation's layout), using the shared `setup.ts` helpers when in the pipeline. The behavior list is the contract:
+Integration-style test in `tests/integration/` (matching project-implementation's layout), using the shared `setup.ts` helpers when in the pipeline. **Timeouts:** 10s per HTTP call (via `setup.ts`), 30s per test (`--test-timeout=30000`) — run locally and pass before push.
+
+The behavior list is the contract:
 
 - Correct status codes per scenario (200/201, 400 validation, 401 unauthenticated, 403 wrong role, 404, 409 conflicts)
 - Response envelope shape and exact field names (per `ARCHITECTURE.md` when available)

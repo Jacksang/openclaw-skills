@@ -133,6 +133,8 @@ Stop after 3 rounds — escalate to human.
 
 Spawn a UAT executor on a fast model. **Target the local Docker stack** (e.g. `http://localhost:PORT` per `docs/LOCAL_SETUP.md`) — same environment integration tests used.
 
+**Timeouts:** every HTTP check **10s max**; every scripted step **30s max**; abort and file a bug if hung — do not leave long-running probes that would stall a human tester or a CI job later.
+
 ### Can Verify
 - API endpoints exist and return correct shapes
 - Frontend HTML loads CSS/JS files
