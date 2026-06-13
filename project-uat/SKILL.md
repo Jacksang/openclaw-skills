@@ -23,10 +23,14 @@ project-planner → project-quoter → ⏸️ CUSTOMER DECISION → project-impl
 - [ ] **Local Docker stack up** — `docker compose up` from project-implementation Phase 0.1 (`docker-compose.yml`, `docs/LOCAL_SETUP.md`). UAT runs against this local environment, not cloud/AWS
 - [ ] User stories with acceptance criteria (`plan/E0X-[role]-stories.md`)
 - [ ] UI design specifications (`uidesign/PAGE_*.md`)
-- [ ] **`plan/UI_IMPLEMENTATION_MANIFEST.md` — all contracted P1 rows ✅** (implementation UI gate passed)
+- [ ] **`plan/UI_IMPLEMENTATION_MANIFEST.md` — Functional + Fidelity ✅** for all contracted P1 rows
+- [ ] **`plan/UI_API_BINDING_MANIFEST.md` — API Binding ✅** (no hardcoded demo metrics; Deferred widgets hidden)
+- [ ] **`npm run test:ui-bindings` passes** on Docker stack
 - [ ] **`plan/DESIGN_APPROVAL.md` signed** (or written customer waiver)
 
-**Hard rule:** If manifest is incomplete, **stop** — return to project-implementation for UI sprint. Do **not** generate UAT cases with "API via Postman" workarounds for missing pages.
+**Hard rule:** If any UI gate is incomplete, **stop** — return to project-implementation. API integration green alone is **not** sufficient for UAT entry.
+
+**Hard rule:** UAT must include **click-through verification** that UI actions change data via API (not only visual mockup compare). Do **not** use "API via Postman" workarounds for missing UI or unbound widgets.
 
 **Model rule (same as planning validation):** generate UAT cases with a fast/cheap model; validate with a strong model. Validator model ≠ generator model.
 

@@ -24,7 +24,14 @@ Test files in `tests/E0X-[role]-tests.md` have **two sections** per UI-visible s
 - `### 🔌 API Behavior Tests` → executable as `tests/integration/*.test.js` (supertest)
 - `### 🖥️ UI Behavior Tests` → executable as `tests/e2e/*.spec.js` (Playwright) or UI gate checklist
 
-**You own both tracks.** API green does not mean the phase passes.
+**You own three tracks.** API green does not mean UI is integrated.
+
+| Track | Tool | Proves |
+|-------|------|--------|
+| API | supertest | HTTP contracts |
+| UI Functional | `npm run test:ui` | Routes exist |
+| UI Fidelity | mockup compare | Layout |
+| **UI–API Binding** | `npm run test:ui-bindings` + Playwright writes | React uses APIs |
 
 ## Responsibilities
 
@@ -53,17 +60,25 @@ describe('E02: Session API Integration Tests', () => {
 });
 ```
 
-### 1b. Implement UI Gate (MANDATORY per epic)
+### 1b. UI Functional + Fidelity (per epic)
 
-For each `PAGE_*` in `plan/UI_IMPLEMENTATION_MANIFEST.md` for this epic:
+For each `PAGE_*` in `plan/UI_IMPLEMENTATION_MANIFEST.md`:
 
-1. Verify route exists in browser (Playwright or coordinator browser check)
-2. Verify critical selectors from `uidesign/PAGE_*.md`
-3. Verify states: loading, empty, error, success — not API-only happy path
-4. Compare screenshot to `uidesign/assets/` mockup when available
-5. File bugs for deviations from wireframe (defect, not "future sprint")
-6. Publish `plan/TEST_REPORT_E0X-UI.md`
-7. Update manifest rows to ✅ only when gate passes
+1. Route + role guard (`npm run test:ui`)
+2. States: loading, empty, error, success
+3. Screenshot vs `uidesign/assets/mockup-*.png`
+4. Update manifest Functional + Fidelity columns
+
+### 1c. UI–API Binding Gate (MANDATORY per epic)
+
+For each row in `plan/UI_API_BINDING_MANIFEST.md` for this epic:
+
+1. Run `npm run test:ui-bindings` — must pass
+2. Playwright: perform at least one **write** action per epic in browser (schedule session, add to cart, register, etc.)
+3. Assert UI updates from API response (not hardcoded literals)
+4. File bugs for decorative metrics, dead buttons, UUID shown where name expected
+5. Publish `plan/TEST_REPORT_E0X-UI.md` including binding section
+6. Update manifest API Binding column ✅ only when verified
 
 ### 2. Test Execution Workflow
 
@@ -71,7 +86,7 @@ For each `PAGE_*` in `plan/UI_IMPLEMENTATION_MANIFEST.md` for this epic:
 2. **Study test plans**: API sections → integration tests; UI sections → e2e or gate checklist
 3. **API track**: `tests/integration/E0X-*.test.ts` — **30s** per test, HTTP **10s**
 4. **UI track**: `tests/e2e/E0X-*.spec.ts` or documented gate checklist — run against **Docker web :3000**
-5. **Run locally**: `npm run test:all` **and** `npm run test:ui` green before finishing
+5. **Run locally**: `npm run test:all` green (includes `test:frontend` = ui + ui-bindings) before finishing
 6. **File bugs** for every failure
 7. **Publish reports**: `plan/TEST_REPORT_E0X.md` (API) + `plan/TEST_REPORT_E0X-UI.md` (UI)
 8. **Commit locally only** — coordinator pushes after API + UI green
@@ -107,12 +122,16 @@ Create bug files at `bugs/BUG-XXX-[title].md`:
 **API track:**
 - [ ] API contract, status codes, RBAC, error scenarios from test files
 
-**UI track (blocks phase Done if any fail):**
-- [ ] Every manifest PAGE for this epic: route + role guard
-- [ ] Wireframe layout (desktop; mobile if spec requires)
-- [ ] All UI states: loading, empty, error, success
-- [ ] Wired to live API
-- [ ] Manifest rows ✅
+**UI Functional + Fidelity:**
+- [ ] Routes, guards, states, mockup compare
+- [ ] Manifest Functional + Fidelity ✅
+
+**UI–API Binding (blocks phase Done if any fail):**
+- [ ] `UI_API_BINDING_MANIFEST.md` rows verified
+- [ ] `npm run test:ui-bindings` pass
+- [ ] Playwright write-action smoke per epic
+- [ ] No hardcoded KPIs / notification counts / fake progress
+- [ ] Manifest API Binding ✅
 
 - [ ] **Bug Triage**: All bugs filed, severity assigned, blockers flagged
 

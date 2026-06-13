@@ -35,12 +35,13 @@ If any input is missing, run the upstream skill first.
 1. **Test infrastructure is Phase 0** — before any feature code
 2. **Every module ships with unit tests** — no exceptions
 3. **Integration testing gates every phase** — tester agent runs after coding
-4. **UI is not optional** — every `PAGE_*` in `plan/UI_IMPLEMENTATION_MANIFEST.md` for contracted epics must be implemented per `uidesign/` before the epic is Done
+4. **UI is not optional** — every `PAGE_*` in `plan/UI_IMPLEMENTATION_MANIFEST.md` for contracted epics must pass **three UI gates** (functional, fidelity, API binding) before the epic is Done
 5. **Dual-track delivery** — each phase has **backend** and **frontend** tracks; both must pass their gates
-6. **Bugs are found and fixed in the same sprint**
-7. **One-at-a-time worker dispatch** — avoid lock contention
-8. **Only the coordinator pushes** — after **`npm run test:all` AND UI gate** pass locally on the Docker stack; never push untested commits to GitHub
-9. **Integration tests have hard timeouts** — hung tests must fail fast locally, not stall CI for minutes
+6. **API integration tests ≠ UI integrated** — supertest proves HTTP contracts; it never proves React calls those endpoints. Binding requires `plan/UI_API_BINDING_MANIFEST.md` + `npm run test:ui-bindings` + Playwright actions
+7. **Bugs are found and fixed in the same sprint**
+8. **One-at-a-time worker dispatch** — avoid lock contention
+9. **Only the coordinator pushes** — after **`npm run test:all` AND all three UI gates** pass locally on the Docker stack; never push untested commits to GitHub
+10. **Integration tests have hard timeouts** — hung tests must fail fast locally, not stall CI for minutes
 
 These rules encode real retrospectives — see `examples/ely2-retrospective.md` (API gates) and the project's `plan/PROCESS_GAP_ANALYSIS.md` (UI traceability).
 
@@ -56,8 +57,13 @@ Planning produces `uidesign/PAGE_*.md` but behavior tests and worker prompts def
 Phase 0: Test Infrastructure
 Phase N: Feature Phases (repeatable) — DUAL TRACK
   ├── N.1a Backend coding → N.2a Unit tests → N.3a API integration tests
-  ├── N.1b Frontend coding → N.2b UI smoke tests → N.3b UI gate (PAGE checklist)
+  ├── N.1b Frontend coding → N.2b UI smoke tests → N.3b/N.3c/N.3d UI gates (see below)
   └── N.4 Bug fix cycle (both tracks)
+
+UI gates (all three required — do not conflate):
+  N.3b Functional — routes, role guards, loading/empty/error/success states
+  N.3c Fidelity — layout matches uidesign/ + mockup screenshot comparison
+  N.3d API Binding — every display + action wired to live API per UI_API_BINDING_MANIFEST
 ```
 
 ---
@@ -118,6 +124,18 @@ Import `plan/UI_IMPLEMENTATION_MANIFEST.md` into `SCRUM_BOARD.md`:
 - Do **not** start epic N backend until manifest rows for epic N are on the board
 
 If manifest is missing, run planner Stage 7 supplement (generate from `uidesign/INDEX.md`) before coding.
+
+### 0.8b UI–API Binding Manifest (MANDATORY)
+
+Copy `project-planner` template to **`plan/UI_API_BINDING_MANIFEST.md`**:
+
+- One row per **widget, metric, button, and link** on each contracted PAGE
+- Columns: widget/action, HTTP method + path, status (✅/⚠️/❌/⏸️ Deferred)
+- Generated from user stories + `tests/E0X-*-tests.md` **UI Behavior** sections
+- Add `phase1/web/scripts/verify-api-bindings.mjs` (or stack equivalent) in Phase 0
+- `npm run test:ui-bindings` must pass before marking **API Binding** ✅
+
+**Hard rule:** Fidelity sprint must not add hardcoded demo metrics to "look complete" (loyalty points, notification counts, fake progress bars). Wire API or mark ⏸️ Deferred and hide the widget.
 
 ### 0.9 CI/CD Pipeline (if applicable)
 - Copy `templates/ci-workflow.yml` (from this skill) to `.github/workflows/ci.yml`
@@ -200,15 +218,22 @@ Track: FRONTEND
 
 ### SCOPE
 - Pages, components, routes, role guards
-- APIs to wire: [list]
+- APIs to wire: [list from UI_API_BINDING_MANIFEST for this PAGE]
 
-### UI DEFINITION OF DONE
-- Layout matches wireframe; all states (loading, empty, error, success)
-- Design system tokens; no emoji; no unapproved third-party scripts
-- UI smoke test added; manifest row updated when gate passes
+### UI DEFINITION OF DONE (three gates)
+**N.3b Functional:** route + role guard + all UI states
+**N.3c Fidelity:** matches wireframe + mockup (`uidesign/assets/`)
+**N.3d API Binding:** every row in UI_API_BINDING_MANIFEST for this PAGE is ✅ or ⏸️ Deferred (hidden in UI)
+
+### ANTI-PATTERNS (reject in review)
+- Hardcoded KPI numbers (loyalty points, notification badges) without API
+- Buttons visible in mockup but disabled with no Deferred waiver
+- Static labels where API returns IDs (customer name, therapist name)
+- `npm run test:ui` route-only checks as sole UI proof
 
 ### RULES
-- No placeholder "coming soon" for contracted PAGE rows
+- No placeholder "coming soon" for contracted PAGE rows unless marked Deferred in manifest
+- Update UI_IMPLEMENTATION_MANIFEST (Functional/Fidelity) and UI_API_BINDING_MANIFEST after each gate
 - Commit locally but DO NOT push
 ```
 
@@ -273,19 +298,34 @@ All tests pass locally within reasonable time (< 10 min suite) before phase is m
 - [ ] **`npm run test:all` passes locally** on Docker stack (unit + API integration, with timeouts)
 - [ ] All bugs filed with clear reproduction steps
 
-### Step N.3b — UI Gate (MANDATORY — same phase, after N.1b)
+### Step N.3b — UI Functional Gate (after N.1b)
 
-**Do not mark the phase Done until this passes.** API green + placeholder HTML is not Done.
-
-#### UI Gate Checklist (per PAGE in manifest for this epic)
 - [ ] Route exists and matches `uidesign/INDEX.md`
 - [ ] Role guard correct (customer / therapist / admin)
-- [ ] Wireframe layout implemented (desktop; mobile if spec requires)
 - [ ] States: loading, empty, error, success — not just happy path
-- [ ] Wired to live API (no hardcoded demo-only data)
 - [ ] `npm run test:ui` smoke passes for epic PAGE(s)
-- [ ] Screenshot compared to mockup where `uidesign/assets/` has one
-- [ ] Manifest rows updated to ✅ in `plan/UI_IMPLEMENTATION_MANIFEST.md`
+- [ ] Manifest **Functional** column ✅ in `plan/UI_IMPLEMENTATION_MANIFEST.md`
+
+### Step N.3c — UI Fidelity Gate (after N.3b)
+
+**Do not mark Fidelity ✅ from route smoke alone.**
+
+- [ ] Wireframe layout implemented (desktop; mobile if spec requires)
+- [ ] Design system tokens; shared components per `COMPONENTS_SHARED.md`
+- [ ] Screenshot compared to `uidesign/assets/mockup-*.png` where mockup exists
+- [ ] No dev labels (`PAGE_xxx`) visible in production UI
+- [ ] Manifest **Fidelity** column ✅
+
+### Step N.3d — UI–API Binding Gate (after N.3c)
+
+**This is why integration tests can pass while the UI feels disconnected.**
+
+- [ ] `plan/UI_API_BINDING_MANIFEST.md` rows for this epic reviewed
+- [ ] Every display value fetched from API (or widget hidden if ⏸️ Deferred)
+- [ ] Every button/link either calls API + updates UI or routes to implemented PAGE
+- [ ] `npm run test:ui-bindings` passes (static anti-pattern linter)
+- [ ] Playwright: at least one **write action** per epic (create session, add to cart, etc.) verified in browser
+- [ ] Manifest **API Binding** column ✅
 
 #### UI Tester Dispatch (optional sub-agent)
 ```
@@ -298,7 +338,7 @@ For each PAGE in manifest for epic E0N:
 ```
 
 #### Combined Phase Gate (both tracks)
-- [ ] API gate (N.3) **and** UI gate (N.3b) passed
+- [ ] API gate (N.3) **and** UI gates (N.3b + N.3c + N.3d) passed
 - [ ] No blockers (critical bugs preventing next phase)
 - [ ] `plan/RISKS.md` reviewed — statuses updated
 - [ ] **Coordinator pushes** only after API + UI green locally
@@ -474,8 +514,10 @@ export async function cleanupDb(): Promise<void> {
   "scripts": {
     "test": "node --test --test-concurrency=1 --test-timeout=15000 --require ts-node/register 'src/**/__tests__/*.test.ts'",
     "test:integration": "node --test --test-concurrency=1 --test-timeout=30000 --require ts-node/register 'tests/integration/**/*.test.ts'",
-    "test:ui": "playwright test tests/e2e --timeout=30000",
-    "test:all": "npm run test && npm run test:integration && npm run test:ui"
+    "test:ui": "node web/scripts/verify-routes.mjs",
+    "test:ui-bindings": "node web/scripts/verify-api-bindings.mjs",
+    "test:frontend": "npm run test:ui && npm run test:ui-bindings",
+    "test:all": "npm run test && npm run test:integration && npm run test:frontend"
   }
 }
 ```
@@ -530,6 +572,9 @@ Severity scale (used everywhere — bugs, gates, reports): 🔴 Critical / 🟠 
 | Pushing before local integration pass | Run `npm run test:all` locally first — CI failures waste time and block merges |
 | Integration tests without timeouts | Hung tests stall CI; use 30s per test, 10s per HTTP call, < 10 min suite budget |
 | API-only phase Done | Frontend skipped — dual-track gates exist for a reason |
+| Conflating API tests with UI integration | supertest does not touch React; require N.3d binding gate |
+| Fidelity without binding | Mockup-matching UI with hardcoded KPIs is not shippable |
+| Decorative buttons (Export, notifications) | Wire API or hide until Deferred waiver |
 | Placeholder dashboard shell | Violates manifest; use role-specific PAGE routes |
 | UAT as substitute for UI implementation | UAT verifies; implementation must build UI first |
 | Starting without DESIGN_APPROVAL | Designs must be frozen or explicitly waived |
@@ -538,14 +583,15 @@ Severity scale (used everywhere — bugs, gates, reports): 🔴 Critical / 🟠 
 
 ## Exit Gate → Hand Off to project-uat
 
-When ALL phases pass **API integration AND UI gates**:
+When ALL phases pass **API integration AND all three UI gates**:
 
 - [ ] All API test reports published (`plan/TEST_REPORT_E0X.md`), all passing
-- [ ] **`plan/UI_IMPLEMENTATION_MANIFEST.md` — all contracted P1 rows ✅**
+- [ ] **`plan/UI_IMPLEMENTATION_MANIFEST.md` — Functional + Fidelity ✅ for all P1 rows**
+- [ ] **`plan/UI_API_BINDING_MANIFEST.md` — API Binding ✅** (or ⏸️ Deferred with customer waiver)
 - [ ] UI test reports published (`plan/TEST_REPORT_E0X-UI.md`) or UI gate checklists signed
 - [ ] All critical/high bugs resolved and verified
 - [ ] Build succeeds; **every contracted PAGE route works in browser** on Docker stack
-- [ ] `npm run test:all` **and** `npm run test:ui` pass locally
+- [ ] `npm run test:all` passes locally (unit + API integration + `test:frontend`)
 - [ ] All commits pushed
 
 ### Security Gate

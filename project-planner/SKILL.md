@@ -262,6 +262,16 @@ Use `references/templates/UI_IMPLEMENTATION_MANIFEST-template.md`. After `plan/A
 
 This manifest is what implementation imports into SCRUM_BOARD — **without it, frontend work will not be dispatched.**
 
+**Stage 7b supplement (MANDATORY): UI–API Binding Manifest**
+
+Use `references/templates/UI_API_BINDING_MANIFEST-template.md`. Generate **`plan/UI_API_BINDING_MANIFEST.md`**:
+
+- One table per contracted PAGE; rows for each widget, metric, button, link
+- API column: method + path from `ARCHITECTURE.md` / behavior tests
+- ⏸️ Deferred only when API is out of scope — UI must hide widget, not fake data
+
+Without this, teams pass API integration tests while shipping decorative UI.
+
 ### Stage 8: Image Generation
 
 **Goal:** Generate visual mockups for customer presentation from validated page designs. Run only after ALL epics validated — avoids regenerating mockups for designs that later change.
@@ -308,6 +318,7 @@ When this skill completes, the following must exist — `project-quoter` and `pr
 | Behavior tests per epic/role | `tests/E0X-[role]-tests.md` | implementation, uat |
 | UI design system + pages | `uidesign/*.md` | implementation, uat |
 | **UI implementation manifest** | `plan/UI_IMPLEMENTATION_MANIFEST.md` | **implementation** (SCRUM_BOARD) |
+| **UI–API binding manifest** | `plan/UI_API_BINDING_MANIFEST.md` | **implementation** (N.3d gate) |
 | Architecture outline | `plan/ARCHITECTURE.md` | quoter, implementation |
 | Visual mockups | `uidesign/assets/` | proposal, customer review |
 | Design approval record | `plan/DESIGN_APPROVAL.md` | implementation, uat |
