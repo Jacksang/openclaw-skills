@@ -5,9 +5,10 @@
 This skill provides a rigorous, multi-step workflow for fixing bugs submitted via the Bug Tracker (http://localhost:3003). It eliminates the ping-pong cycle of "I said it was fixed but it wasn't" by enforcing:
 
 1. **Test-case-first**: Every bug is reviewed by a test agent before any code is written.
-2. **Verification loop**: Fixes are automatically UAT-tested with browser screenshots.
-3. **Retry on failure**: Failed UAT spawns a new fix cycle; never report "done" until tests pass.
-4. **Formal sign-off**: Final report with explicit PASS/FAIL and a reminder for human UAT.
+2. **Build verification**: Every fix MUST pass a full build before it can be committed.
+3. **Verification loop**: Fixes are automatically UAT-tested with browser screenshots. ALL bugs require browser testing — even "backend-only" changes can crash SSR.
+4. **Retry on failure**: Failed UAT spawns a new fix cycle; never report "done" until tests pass.
+5. **Formal sign-off**: Final report with explicit PASS/FAIL and a reminder for human UAT.
 
 ## Workflow
 
@@ -17,6 +18,7 @@ This skill provides a rigorous, multi-step workflow for fixing bugs submitted vi
 - Target project directory exists at `~/.openclaw/workspace/projects/<project>` or `~/projects/<project>`
 - Project has `bugs/` folder with bug files in format `BUG-###-title.md`
 - Bug files use the template (Status: `[ ] New` or `[~] Reopened` → needs fixing)
+- Ensure project can build: `npm install` if new deps were added
 
 ### Step 1: Scan for Pending Bugs
 
@@ -51,11 +53,7 @@ For EACH pending bug (process sequentially, one at a time):
 
 ### Step 3: Determine Fix Scope
 
-Based on the bug description (frontend, backend, or both), decide:
-
-- **Frontend bug** → requires browser testing/UAT with screenshots after fix.
-- **Backend bug** → API-level test is sufficient (no screenshots needed).
-- **Both** → run frontend + backend fix agents separately.
+Based on the bug description (frontend, backend, or both), decide what fix slices are needed. However, **scope does NOT affect UAT requirements** — ALL bugs require build verification + browser UAT (see below).
 
 ### Step 4: Spawn Fix Sub-agents
 
@@ -82,17 +80,81 @@ For each scope (frontend, backend, or both):
    - Check that the fix addresses the root cause, not just symptoms.
    - If fix is incomplete → spawn a new slice agent, do NOT reuse the existing one.
 
-### Step 5: Commit to GitHub
+### Step 5: Build Verification (MANDATORY — ALL Bug Types)
 
-After ALL fix slices for the current bug are done:
+**NEVER SKIP THIS STEP.** Even a one-line change can crash the entire application.
+
+1. **Run the build:**
+   ```
+   cd ~/projects/<project>
+   npm run build
+   ```
+   (or equivalent: `vite build`, `svelte-kit build`, `next build`, `tsc`, `make`, etc.)
+
+2. **If build fails:**
+   - ❌ **Class 1 CRASH BUG — DO NOT COMMIT**
+   - This means the fix broke the application. It is NOT fixed.
+   - Do NOT update the bug file status.
+   - Do NOT report to the user as "done."
+   - Immediately go back to Step 4 (spawn new fix sub-agents to fix the build).
+   - Report to user: "Build failed due to our fix — fixing the crash now."
+   - After repairing, rebuild and verify again.
+
+3. **If build passes:**
+   - ✅ Proceed to Step 6 (UAT test).
+
+### Step 6: UAT Test with Browser Screenshots (MANDATORY — ALL Bug Types)
+
+**NEVER SKIP BROWSER TESTING.** Even "pure backend" changes affect SSR rendering, page loading, and the overall application. If there is no UI change, still test that the app loads without crashing.
+
+1. **Ensure the dev server is running:**
+   - Start it in background: `npm run dev` (or `npm run preview` for production build)
+   - Wait for the server to be ready (poll the port until it accepts connections)
+   - If the server fails to start → **this is a runtime crash** → go back to Step 5
+   - If the server starts but pages return 500 errors → this is a runtime crash → go back to Step 4
+
+2. **Write a UAT test file** to `bugs/uat-tests/BUG-XXX-uat.spec.ts`:
+   - Must navigate to the affected page(s)
+   - Must take screenshots (`page.screenshot({ path: 'test-results/bugXXX-<description>.png', fullPage: true })`)
+   - Must verify page content loaded correctly (not blank, not error page)
+   - Must verify the bug-specific fix (e.g., setting is applied, feature works)
+   - Must pass within a reasonable timeout (60s per test max)
+
+3. **Run the UAT test:**
+   ```
+   cd ~/projects/<project>
+   npx playwright test bugs/uat-tests/BUG-XXX-uat.spec.ts
+   ```
+   If `playwright` is not available, use `npx playwright test`.
+
+4. **Verify screenshots** (main session MUST inspect them):
+   - Screenshots prove the page rendered without crashes
+   - If screenshots show error messages, blank pages, or 500 errors → test FAILED
+   - Save passed screenshots to `bugs/uat-results/BUG-XXX-uat-screenshot.png`
+
+5. **If UAT fails:**
+   - ❌ **DO NOT DECLARE THE BUG FIXED**
+   - Save failed screenshots as `bugs/uat-results/BUG-XXX-failed.png`
+   - Write a `bugs/uat-results/BUG-XXX-failed.md` with the failure reason and screenshots
+   - Go back to Step 4 (fix again)
+   - Max 3 fix-attempts per bug before escalation
+
+6. **If UAT passes:**
+   - ✅ Proceed to Step 7 (Commit).
+
+### Step 7: Commit to GitHub
+
+Only reached AFTER build passes AND UAT passes.
 
 1. Git operations in the project directory:
    ```
-   cd ~/projects/<project>  # or ~/.openclaw/workspace/projects/<project>
+   cd ~/projects/<project>
    git add -A
    git commit -m "Fix BUG-XXX: <title>"
-   git push origin master
+   git push origin main
    ```
+   (Note: use `main` not `master` — check the project's default branch first)
+
 2. If git fails (e.g., branch mismatch, credentials) → report error to user.
 
 3. Update the bug file:
@@ -104,37 +166,6 @@ After ALL fix slices for the current bug are done:
      | **Resolution** | Brief description of what was fixed |
      | **Time spent** | Approximate time |
    - If fix had retry attempts, note them in Eva2 Notes.
-
-### Step 6: UAT Test (Frontend Bugs Only)
-
-Skip for pure backend bugs (go to Step 8).
-
-1. **Ensure the dev server is running** for the project:
-   - If not running, start it in background (e.g., `npm run dev`).
-   - Wait for server to be ready (poll port until accepting connections).
-
-2. **Spawn UAT test sub-agent** (`mode="run"`, isolated, 10 min timeout):
-   - Agent reads the bug file + test case file.
-   - Agent uses browser (playwright/puppeteer or headless Chrome) to:
-     - Navigate to the affected page/route.
-     - Follow steps to reproduce and verify bug is fixed.
-     - Take screenshots before/after where relevant.
-     - Write results to `bugs/uat-results/BUG-XXX-uat-report.md` with embedded screenshots.
-   - Agent returns PASS or FAIL with clear evidence.
-
-3. **Monitor UAT agent** — same watchdog approach.
-
-### Step 7: UAT Result Handling
-
-**If PASS:**
-- Update bug file: append `**UAT Status:** ✅ PASS` to Eva2 Notes.
-- Move to the next pending bug (back to Step 2).
-
-**If FAIL:**
-- Update bug file: append `**UAT Status:** ❌ FAIL` with the failure reason.
-- **Increment fix attempt counter** for this bug.
-- If attempts < 3 → go back to Step 4 (fix again).
-- If attempts >= 3 → escalate: report to user with details, mark bug as `[!] Escalated`, stop processing this bug and continue to next.
 
 ### Step 8: Final Report
 
@@ -154,7 +185,7 @@ After ALL bugs have been processed:
    Commits pushed to GitHub.
    ```
 
-2. **Important: Remind user to do their own UAT:**
+2. **MANDATORY: Remind user to do their own UAT:**
    ```
    All automated fixes are done. Please do your own UAT test on the latest build and let me know if you find any remaining issues.
    ```
@@ -190,10 +221,24 @@ After processing, a completed bug file should look like:
 | Bug has no test case file | Generate test cases on the fly (Step 2) |
 | Fix agent kills itself | Restart with same slice (max 3 times) |
 | Fix modifies files outside scope | Revert, re-scope, restart |
-| Git push fails | Report error to user, continue to next bug |
-| Server won't start for UAT | Report error, skip UAT, notify user |
+| Build fails after fix | **Class 1 crash** — do NOT commit, fix the build first |
+| Dev server won't start | Runtime crash — go back to fix (Step 4) |
+| Dev server returns 500 on pages | Runtime crash — go back to fix (Step 4) |
+| UAT test fails | Do NOT declare fixed — go back to Step 4 |
 | UAT timeout (>10 min) | Kill agent, retry once, then escalate |
+| Git push fails | Report error to user, continue to next bug |
 | User says "priority bug" | Process that bug immediately, queue others |
+
+## NEVER Rules (Violating These Is Not Acceptable)
+
+1. **NEVER declare a bug fixed before build passes.**
+2. **NEVER declare a bug fixed before UAT passes with screenshots.**
+3. **NEVER skip browser testing for "backend-only" bugs** — SSR crashes are real.
+4. **NEVER commit code that crashes the dev server or returns 500.**
+5. **NEVER skip writing the UAT test file.**
+6. **NEVER skip taking and verifying screenshots.**
+7. **NEVER re-use a failed fix attempt without analyzing what went wrong.**
+8. **NEVER exceed 3 fix attempts per bug** — escalate to the user.
 
 ## Efficiency Rules
 
